@@ -355,6 +355,12 @@
     scrollbar {
         background-color: transparent;
         border: none;
+
+        /* Stated, not inherited. GTK3's own default is to SHOW the steppers and Adwaita turns them
+           off explicitly, so a theme that mentions neither gets them by accident — which is how a
+           pair of full-size buttons ended up clamped to the ends of a slim scrollbar here. */
+        -GtkScrollbar-has-backward-stepper: #{c.$scrollbar-steppers};
+        -GtkScrollbar-has-forward-stepper: #{c.$scrollbar-steppers};
     }
     scrollbar trough { background-color: transparent; }
     scrollbar:hover trough { background-color: s.$scrollbar-trough; }
@@ -386,15 +392,19 @@
         border-radius: 0;
         padding: 0;
         margin: 0;
-        min-width: 12px;
-        min-height: 12px;
-        color: s.$on-surface-mute;
+        min-width: c.$scrollbar-stepper-size;
+        min-height: c.$scrollbar-stepper-size;
+        color: s.$on-surface-dim;
         -gtk-icon-source: none;
         transition: color c.$duration c.$easing;
     }
     scrollbar button:hover { color: s.$on-surface; background-color: s.$state-hover; }
     scrollbar button:active { color: s.$accent; }
-    scrollbar button:disabled { color: transparent; }
+
+    /* Dimmed, NOT hidden. `color: transparent` made the stepper at whichever end you had reached
+       vanish outright, so the scrollbar lost an arrow depending on where you had scrolled to — one
+       end always looked broken. A control that cannot act right now should say so, not leave. */
+    scrollbar button:disabled { color: s.alpha(s.$on-surface, 0.25); }
 
     scrollbar.vertical button.up {
         -gtk-icon-source: -gtk-recolor(url("lvim-assets/pan-up-symbolic.svg"));

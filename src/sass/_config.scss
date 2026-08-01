@@ -68,6 +68,18 @@ $check-spacing:     4px !default;   // gap between that box and its label
 $scrollbar-width:   8px !default;
 $scrollbar-width-hover: 12px !default;
 
+// The little arrows at either end of a scrollbar. OFF, and stated rather than assumed: GTK3's own
+// default is to SHOW them and Adwaita turns them off explicitly, so a theme that mentions neither
+// gets them by accident — which is exactly how a pair of full-size buttons ended up clamped to the
+// ends of a slim scrollbar here.
+//
+// They are a legacy affordance no modern GTK application shows, and they render badly in the
+// modern layout: the end at which you have already arrived is disabled, so one of the two is always
+// inert, and there is rarely room for both. The rules and the four arrow glyphs are kept, so this
+// is a switch rather than a demolition.
+$scrollbar-steppers: false !default;
+$scrollbar-stepper-size: 16px !default;
+
 // ── Window manager decorations ───────────────────────────────────────────────
 //
 // XFWM4 and Metacity draw their own titlebar rather than letting the application draw it, so these
