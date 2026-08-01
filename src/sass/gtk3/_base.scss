@@ -47,12 +47,21 @@
         border-bottom-color: s.$border;
     }
 
-    messagedialog > headerbar,
-    messagedialog > .titlebar,
-    window.dialog.message > headerbar,
-    window.dialog.message > .titlebar,
-    window.csd.popup > headerbar {
-        background-color: transparent;
+    /* A CSD titlebar that is NOT a headerbar — the empty strip GTK puts above a message dialog.
+       Two things were wrong here before, and both were found by asking GTK rather than by reading
+       the markup:
+
+       `transparent` is not `invisible`. In GTK3 it means UNPAINTED, and the two coincide only when
+       something behind is doing the painting. A CSD titlebar has nothing behind it, so the first
+       version of this rule rendered a pure #000000 band 16px tall across the top of the dialog.
+
+       And the selectors it used could never match. A GtkMessageDialog carries exactly two classes,
+       `.background` and `.csd` — no `.dialog`, no `.message` — so every `messagedialog` and
+       `window.dialog.message` rule was dead. What distinguishes it is the titlebar itself: an
+       application's is a `headerbar`, a message dialog's is a bare GtkBox carrying `.titlebar`.
+       Being part of the window rather than chrome above it, it takes the window's own surface. */
+    .titlebar:not(headerbar) {
+        background-color: s.$surface;
         border-bottom: none;
         min-height: 0;
     }
