@@ -1,0 +1,7 @@
+<!-- lvim-gtk: the arrow on a scrollbar's stepper. Shipped by the theme for the same reason the
+     window controls are — an icon theme that does not define these inherits somebody else's, and
+     GTK draws no glyph at all without a `-gtk-icon-source`. Filled path: symbolic recolouring sets
+     `fill`, never `stroke`. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <path d="M4 6 H12 L8 11 Z"/>
+</svg>

@@ -371,6 +371,44 @@
     scrollbar slider:active { background-color: s.$scrollbar-slider-active; }
     scrollbar slider:disabled { background-color: transparent; }
 
+    /* THE STEPPERS. An application may ask for the little arrows at either end, and when it does
+       they are `button` nodes — so with no rule of their own they inherit the ordinary button: its
+       34px minimum height, its padding, its fill. What appears is a pair of large pale rectangles
+       clamped to the ends of a slim scrollbar, and no arrow at all, because GTK draws no glyph
+       without a `-gtk-icon-source`. Same omission as the checkbox tick, in a different widget.
+
+       The glyphs are the theme's own, not the icon theme's, for the reason given in
+       window-close-symbolic.svg. GTK names them `.up` and `.down` in BOTH orientations — a
+       horizontal scrollbar's "up" is its left — which is why the four rules read the way they do. */
+    scrollbar button {
+        background-color: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+        min-width: 12px;
+        min-height: 12px;
+        color: s.$on-surface-mute;
+        -gtk-icon-source: none;
+        transition: color c.$duration c.$easing;
+    }
+    scrollbar button:hover { color: s.$on-surface; background-color: s.$state-hover; }
+    scrollbar button:active { color: s.$accent; }
+    scrollbar button:disabled { color: transparent; }
+
+    scrollbar.vertical button.up {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/pan-up-symbolic.svg"));
+    }
+    scrollbar.vertical button.down {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/pan-down-symbolic.svg"));
+    }
+    scrollbar.horizontal button.up {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/pan-start-symbolic.svg"));
+    }
+    scrollbar.horizontal button.down {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/pan-end-symbolic.svg"));
+    }
+
     /* ── checks and radios ─────────────────────────────────────────────────── */
     //
     // GTK3 DOES NOT DRAW THE TICK. gtk_render_check() paints a background and a frame and then

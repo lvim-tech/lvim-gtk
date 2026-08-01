@@ -1,0 +1,4 @@
+<!-- lvim-gtk: scrollbar stepper, upwards. See pan-down-symbolic.svg. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <path d="M4 10 H12 L8 5 Z"/>
+</svg>
