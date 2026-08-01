@@ -47,6 +47,26 @@
         border-bottom-color: s.$border;
     }
 
+    /* THE CSD FRAME ITSELF. GTK3 gives every client-side-decorated window a `decoration` node and
+       draws the frame on it; a theme that never mentions it leaves that surface unpainted, and
+       unpainted composites as pure #000000 rather than as nothing. Adwaita styles it, and tellingly
+       has to CLEAR it again for tooltips — which only makes sense if something is painted there by
+       default.
+       Ours said nothing at all about it. The exceptions below are surfaces that draw their own
+       shape and must not get a rectangle behind them. */
+    decoration {
+        background-color: s.$surface;
+        border-radius: c.$radius-window;
+    }
+
+    tooltip decoration,
+    popover decoration,
+    menu decoration,
+    .csd.popup decoration { background-color: transparent; }
+
+    window.dialog decoration,
+    messagedialog decoration { background-color: s.$surface; }
+
     /* A CSD titlebar that is NOT a headerbar — the empty strip GTK puts above a message dialog.
        Two things were wrong here before, and both were found by asking GTK rather than by reading
        the markup:
@@ -60,7 +80,8 @@
        `window.dialog.message` rule was dead. What distinguishes it is the titlebar itself: an
        application's is a `headerbar`, a message dialog's is a bare GtkBox carrying `.titlebar`.
        Being part of the window rather than chrome above it, it takes the window's own surface. */
-    .titlebar:not(headerbar) {
+    .titlebar:not(headerbar),
+    .titlebar.default-decoration:not(headerbar) {
         background-color: s.$surface;
         border-bottom: none;
         min-height: 0;
