@@ -1,0 +1,15 @@
+<!-- lvim-gtk: the close button of a client-side titlebar.
+
+     WHY THE THEME SHIPS THIS AT ALL. Window controls are drawn from the ICON theme, and an icon
+     theme that does not define them inherits from whatever it lists. YAMIS lists
+     Papirus-Dark, breeze-dark, … — so a GNOME application ended up with KDE's window controls, whose
+     maximise is a chevron and whose restore is a pair of them stacked into a diamond. Correct for
+     Breeze, wrong beside everything else on the screen.
+
+     Chrome belongs to the theme, so the theme supplies it, and the glyphs stop depending on which
+     icon set the user happens to like. Filled closed paths, as with the checkmark: GTK's symbolic
+     recolouring sets `fill`, never `stroke`. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <path d="M4.566 3.434 L12.566 11.434 L11.434 12.566 L3.434 4.566 Z"/>
+    <path d="M12.566 4.566 L4.566 12.566 L3.434 11.434 L11.434 3.434 Z"/>
+</svg>

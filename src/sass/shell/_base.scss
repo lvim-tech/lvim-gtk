@@ -1,0 +1,882 @@
+// lvim-gtk.shell.base: GNOME Shell.
+//
+// A THIRD KIND OF FILE AGAIN. The GTK3 half exists because GTK3 paints nothing it is not told to;
+// the GTK4 half is small because libadwaita already paints everything and only its geometry needed
+// answering. The Shell is neither: it is styled by St, whose CSS engine has no custom properties at
+// all — measured, `gnome-shell-dark.css` is 3324 lines with 108 literal colours and not one `var()`.
+// The bridge that carried this theme's palette into libadwaita therefore does not exist here.
+//
+// AND A USER THEME REPLACES THE STYLESHEET, it does not layer over it. There is no cascade to fall
+// back through: a selector this file forgets is not styled by Adwaita instead, it is not styled at
+// all. That is why the scope below is wide rather than tactical — the panel, the menus, the
+// overview, the dialogs, the login screen — and why it is organised by surface, so a gap is visible
+// as a missing heading rather than as an unlit corner on somebody's screen.
+//
+// Loaded by the User Themes extension from gnome-shell/gnome-shell.css. Untestable on this machine
+// (GDM is not enabled), so it is written to the Shell's own selector inventory rather than to
+// something observed.
+
+@use '../semantic' as s;
+@use '../config' as c;
+
+// The Shell floats most of its chrome over a desktop picture, so its surfaces are darker and more
+// opaque than the toolkit's — a translucent panel over a bright wallpaper is unreadable.
+$shell-panel:      s.alpha(s.sink(s.$surface, 4%), 0.92) !default;
+$shell-surface:    s.$surface-raised !default;
+$shell-overlay:    s.alpha(s.sink(s.$surface, 6%), 0.95) !default;
+$shell-hover:      s.$state-hover !default;
+$shell-active:     s.$state-active !default;
+$shell-border:     s.$border !default;
+
+@mixin emit {
+    /* ── the stage ─────────────────────────────────────────────────────────── */
+    stage {
+        font-size: 11pt;
+        color: s.$on-surface;
+    }
+
+    /* ── the top panel ─────────────────────────────────────────────────────── */
+    #panel {
+        background-color: $shell-panel;
+        font-weight: bold;
+        height: 32px;
+    }
+
+    #panel.unlock-screen,
+    #panel.login-screen,
+    #panel.lock-screen {
+        background-color: transparent;
+    }
+
+    #panel .panel-button {
+        color: s.$on-surface;
+        border-radius: c.$radius;
+        spacing: c.$space-2;
+        transition-duration: c.$duration;
+    }
+
+    #panel .panel-button:hover { background-color: $shell-hover; }
+    #panel .panel-button:active,
+    #panel .panel-button:overview,
+    #panel .panel-button:focus,
+    #panel .panel-button:checked {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    #panel .panel-button .system-status-icon,
+    #panel .panel-button .app-menu-icon { icon-size: 16px; }
+
+    #panel .panel-status-indicators-box,
+    #panel .panel-status-menu-box { spacing: c.$space-2; }
+
+    #panel .clock-display-box .clock { padding-left: c.$space-3; padding-right: c.$space-3; }
+
+    #panel .screen-recording-indicator,
+    #panel .screen-sharing-indicator {
+        background-color: s.$error;
+        color: s.$on-error;
+        border-radius: c.$radius-track;
+    }
+
+    /* ── popup menus ───────────────────────────────────────────────────────── */
+    .popup-menu {
+        min-width: 200px;
+        color: s.$on-surface;
+    }
+
+    .popup-menu-content,
+    .candidate-popup-content {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        padding: c.$space-2;
+    }
+
+    .popup-menu-item {
+        spacing: c.$space-3;
+        padding: c.$space-2 c.$space-4;
+        border-radius: c.$radius-active;
+        transition-duration: c.$duration;
+    }
+
+    .popup-menu-item:checked { background-color: $shell-active; }
+    .popup-menu-item:hover,
+    .popup-menu-item:focus,
+    .popup-menu-item.selected {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .popup-menu-item:insensitive { color: s.$on-surface-mute; }
+
+    .popup-inactive-menu-item { color: s.$on-surface; }
+    .popup-inactive-menu-item:insensitive { color: s.$on-surface-mute; }
+
+    .popup-separator-menu-item {
+        background-color: transparent;
+        border-color: $shell-border;
+        height: 1px;
+        margin: c.$space-2 0;
+    }
+
+    .popup-sub-menu {
+        background-color: s.alpha(s.$shadow, 0.2);
+        border: none;
+    }
+
+    .popup-menu-arrow { icon-size: 16px; }
+    .popup-menu-icon { icon-size: 16px; }
+
+    .popup-menu-boxpointer { -arrow-border-radius: c.$radius-large; }
+
+    /* ── quick settings ────────────────────────────────────────────────────── */
+    .quick-settings {
+        padding: c.$space-5;
+        spacing: c.$space-4;
+    }
+
+    .quick-settings-grid { spacing-rows: c.$space-3; spacing-columns: c.$space-3; }
+
+    .quick-toggle,
+    .quick-menu-toggle,
+    .quick-slider {
+        border-radius: c.$radius;
+        background-color: s.$surface-sunken;
+        color: s.$on-surface;
+        min-height: 48px;
+        transition-duration: c.$duration;
+    }
+
+    .quick-toggle:hover,
+    .quick-menu-toggle:hover { background-color: s.lift(s.$surface-sunken, 6%); }
+
+    .quick-toggle:checked,
+    .quick-menu-toggle:checked,
+    .quick-toggle-has-menu:checked {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    .quick-toggle-title { font-weight: bold; }
+    .quick-toggle-subtitle { color: s.$on-surface-dim; font-size: 0.9em; }
+
+    .quick-toggle-menu {
+        background-color: $shell-overlay;
+        border-radius: c.$radius-large;
+        padding: c.$space-4;
+    }
+
+    .quick-toggle-menu .popup-menu-item:checked {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    .quick-slider .slider { color: s.$accent; -barlevel-background-color: s.$surface-sunken; }
+
+    .quick-settings-system-item .icon-button {
+        border-radius: c.$radius-track;
+        padding: c.$space-3;
+        background-color: s.$surface-sunken;
+    }
+    .quick-settings-system-item .icon-button:hover { background-color: $shell-hover; }
+
+    .background-apps-quick-toggle { border-radius: c.$radius; }
+    .background-app-item .title { font-weight: bold; }
+
+    /* ── date menu, calendar, notifications ────────────────────────────────── */
+    .datemenu-popover { padding: 0; }
+
+    .datemenu-calendar-column {
+        border-left: c.$border-width solid $shell-border;
+        spacing: c.$space-4;
+    }
+
+    .datemenu-today-button,
+    .world-clocks-button,
+    .weather-button,
+    .events-button {
+        border-radius: c.$radius;
+        padding: c.$space-4;
+        color: s.$on-surface;
+        transition-duration: c.$duration;
+    }
+    .datemenu-today-button:hover,
+    .world-clocks-button:hover,
+    .weather-button:hover,
+    .events-button:hover { background-color: $shell-hover; }
+
+    .datemenu-today-button .day-label { font-size: 1.1em; font-weight: bold; }
+    .datemenu-today-button .date-label { font-size: 1.6em; }
+
+    .calendar { padding: c.$space-3; }
+    .calendar-month-label {
+        color: s.$on-surface;
+        font-weight: bold;
+        padding: c.$space-2 0;
+    }
+    .calendar-day-base {
+        border-radius: c.$radius-track;
+        padding: c.$space-2;
+        width: 30px;
+        height: 30px;
+        transition-duration: c.$duration;
+    }
+    .calendar-day-base:hover { background-color: $shell-hover; }
+    .calendar-day-base:active,
+    .calendar-day-base:selected {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .calendar-day-heading { color: s.$on-surface-dim; font-size: 0.85em; }
+    .calendar-nonwork-day { color: s.$on-surface-dim; }
+    .calendar-other-month-day { color: s.$on-surface-mute; }
+    .calendar-today {
+        font-weight: bold;
+        border: c.$border-width solid s.$accent;
+    }
+    .calendar-day-with-events { color: s.$accent; font-weight: bold; }
+
+    .message-list { spacing: c.$space-3; }
+    .message-list-placeholder { color: s.$on-surface-mute; }
+
+    .message,
+    .message-notification-group {
+        background-color: s.$surface-sunken;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        transition-duration: c.$duration;
+    }
+    .message:hover { background-color: s.lift(s.$surface-sunken, 5%); }
+    .message-title { font-weight: bold; }
+    .message-content { color: s.$on-surface-dim; }
+    .message-secondary-bin { color: s.$on-surface-mute; }
+    .message-close-button { color: s.$on-surface-dim; }
+
+    .notification-banner {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        width: 34em;
+    }
+
+    /* ── overview ──────────────────────────────────────────────────────────── */
+    #overview { spacing: c.$space-5; }
+    .overview-controls { padding-bottom: c.$space-5; }
+
+    #dash {
+        background-color: $shell-panel;
+        border-radius: c.$radius-large;
+        padding: c.$space-2;
+    }
+    #dash .placeholder { height: 32px; }
+    #dash .empty-dash-drop-target { width: 32px; height: 32px; }
+
+    .dash-item-container .app-well-app,
+    .dash-item-container .show-apps { padding: c.$space-2; }
+
+    .dash-label {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-2 c.$space-4;
+    }
+
+    .app-well-app .overview-icon,
+    .grid-search-result .overview-icon,
+    .show-apps .overview-icon,
+    .search-provider-icon {
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .app-well-app .overview-icon:hover,
+    .grid-search-result .overview-icon:hover,
+    .show-apps .overview-icon:hover,
+    .search-provider-icon:hover { background-color: $shell-hover; }
+    .app-well-app .overview-icon:active,
+    .app-well-app:checked .overview-icon,
+    .show-apps:checked .overview-icon {
+        background-color: s.alpha(s.$accent, c.$selection-cell-alpha);
+    }
+
+    .app-grid-running-dot { background-color: s.$accent; }
+
+    .icon-grid { spacing: c.$space-5; }
+    .page-indicator .page-indicator-icon {
+        background-color: s.alpha(s.$on-surface, 0.3);
+        border-radius: c.$radius-track;
+        width: 8px;
+        height: 8px;
+    }
+    .page-indicator:checked .page-indicator-icon { background-color: s.$on-surface; }
+
+    .app-folder .overview-icon { background-color: s.alpha(s.$on-surface, 0.1); }
+    .app-folder-dialog {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        padding: c.$space-5;
+    }
+    .app-folder-dialog .folder-name-entry { width: 300px; }
+
+    .window-picker { spacing: c.$space-4; }
+    .window-clone-border {
+        border: 2px solid s.$accent;
+        border-radius: c.$radius;
+    }
+    .window-caption {
+        background-color: $shell-overlay;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-2 c.$space-4;
+    }
+    .window-close { background-color: s.$destructive; color: s.$on-destructive; border-radius: c.$radius-track; }
+
+    .workspace-thumbnails { spacing: c.$space-3; }
+    .workspace-thumbnail-indicator {
+        border: 2px solid s.$accent;
+        border-radius: c.$radius;
+    }
+
+    /* ── search ────────────────────────────────────────────────────────────── */
+    #searchEntry {
+        width: 320px;
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-4;
+    }
+    #searchEntry:focus { border-color: s.$accent; }
+    #searchEntry StLabel.hint { color: s.$on-surface-mute; }
+    #searchEntry StIcon.capslock-warning { icon-size: 16px; color: s.$warning; }
+
+    .search-section-content { spacing: c.$space-4; }
+    .search-section-separator { background-color: $shell-border; height: 1px; }
+    .search-statustext { color: s.$on-surface-mute; }
+
+    .list-search-results { spacing: c.$space-2; }
+    .list-search-result {
+        border-radius: c.$radius;
+        padding: c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .list-search-result:hover,
+    .list-search-result:focus,
+    .list-search-result:selected { background-color: $shell-hover; }
+    .list-search-result-title { color: s.$on-surface; }
+    .list-search-result-description { color: s.$on-surface-dim; }
+
+    /* ── OSD, level bars ───────────────────────────────────────────────────── */
+    .osd-window {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-5;
+        spacing: c.$space-4;
+    }
+    .osd-window .level {
+        height: 8px;
+        -barlevel-height: 8px;
+        -barlevel-background-color: s.$surface-sunken;
+        -barlevel-active-background-color: s.$accent;
+        -barlevel-overdrive-color: s.$error;
+        -barlevel-border-color: transparent;
+        -barlevel-active-border-color: transparent;
+        -barlevel-border-width: 0;
+    }
+
+    .level-bar { background-color: s.$accent; border-radius: c.$radius-track; }
+
+    /* ── modal dialogs ─────────────────────────────────────────────────────── */
+    .modal-dialog {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+    }
+    .modal-dialog .modal-dialog-content-box { padding: c.$space-6; spacing: c.$space-4; }
+    .modal-dialog .message-dialog-title { font-weight: bold; font-size: 1.2em; }
+    .modal-dialog .message-dialog-description { color: s.$on-surface-dim; }
+
+    .modal-dialog-linked-button {
+        background-color: transparent;
+        border-top: c.$border-width solid $shell-border;
+        border-left: c.$border-width solid $shell-border;
+        color: s.$on-surface;
+        padding: c.$space-4;
+        transition-duration: c.$duration;
+    }
+    .modal-dialog-linked-button:hover { background-color: $shell-hover; }
+    .modal-dialog-linked-button:active { background-color: $shell-active; }
+    .modal-dialog-linked-button:insensitive { color: s.$on-surface-mute; }
+    .modal-dialog-linked-button.default {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    .end-session-dialog,
+    .prompt-dialog,
+    .access-dialog,
+    .audio-device-selection-dialog,
+    .conflicting-session-dialog-content { spacing: c.$space-5; }
+
+    .prompt-dialog-password-entry,
+    .prompt-dialog-error-label { color: s.$on-surface; }
+    .prompt-dialog-error-label { color: s.$error; }
+    .prompt-dialog-info-label { color: s.$on-surface-dim; }
+
+    /* ── window switcher ───────────────────────────────────────────────────── */
+    .switcher-popup { spacing: c.$space-4; }
+    .switcher-list {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-4;
+    }
+    .switcher-list .item-box {
+        border-radius: c.$radius;
+        padding: c.$space-3;
+    }
+    .switcher-list .item-box:outlined,
+    .switcher-list .item-box:selected {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .switcher-arrow { border-color: transparent; color: s.$on-surface-dim; }
+    .switcher-arrow:highlighted { color: s.$on-accent; }
+
+    .cycler-highlight { border: 4px solid s.$accent; }
+
+    .workspace-switcher-container { spacing: c.$space-3; }
+    .ws-switcher-box {
+        background-color: s.$surface-sunken;
+        border-radius: c.$radius;
+        height: 48px;
+    }
+    .ws-switcher-active-up,
+    .ws-switcher-active-down { background-color: s.$accent; }
+
+    /* ── screenshot UI ─────────────────────────────────────────────────────── */
+    .screenshot-ui-panel {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        padding: c.$space-4;
+        spacing: c.$space-4;
+    }
+    .screenshot-ui-type-button,
+    .screenshot-ui-shot-cast-button {
+        background-color: s.$surface-sunken;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-5;
+    }
+    .screenshot-ui-type-button:checked,
+    .screenshot-ui-shot-cast-button:checked {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .screenshot-ui-capture-button { background-color: s.$accent; border-radius: c.$radius-track; }
+    .screenshot-ui-area-selector-handle {
+        background-color: s.$accent;
+        border-radius: c.$radius-track;
+    }
+    .screenshot-ui-window-selector-window { border-radius: c.$radius; }
+    .screenshot-ui-window-selector-window:hover { border: 2px solid s.$accent; }
+
+    /* ── login and lock ────────────────────────────────────────────────────── */
+    #lockDialogGroup { background-color: s.$surface; }
+
+    .login-dialog,
+    .unlock-dialog {
+        background-color: transparent;
+        border: none;
+    }
+
+    .login-dialog-user-selection-box { padding: 100px 0; }
+    .login-dialog-banner-view { color: s.$on-surface-dim; }
+    .login-dialog-message { color: s.$on-surface-dim; }
+    .login-dialog-message-hint { color: s.$on-surface-mute; }
+
+    .login-dialog-user-list-view,
+    .login-dialog-auth-list-view { -st-vfade-offset: 1em; }
+
+    .login-dialog-user-list .login-dialog-user-list-item,
+    .login-dialog-auth-list .login-dialog-auth-list-item {
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3;
+    }
+    .login-dialog-user-list .login-dialog-user-list-item:focus,
+    .login-dialog-auth-list .login-dialog-auth-list-item:focus {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    .login-dialog-button,
+    .login-dialog-not-listed-button {
+        background-color: transparent;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-5;
+    }
+    .login-dialog-button:hover { background-color: $shell-hover; }
+    .login-dialog-button:default {
+        background-color: s.$accent;
+        color: s.$on-accent;
+        border-color: s.$accent;
+    }
+
+    .unlock-dialog-clock { color: s.$on-surface; spacing: c.$space-4; }
+    .unlock-dialog-clock-time { font-size: 64pt; font-weight: bold; }
+    .unlock-dialog-clock-date { font-size: 16pt; color: s.$on-surface-dim; }
+    .unlock-dialog-clock-hint { color: s.$on-surface-mute; }
+    .unlock-dialog-notifications-container { spacing: c.$space-3; }
+    .caps-lock-warning-label { color: s.$warning; }
+
+    /* ── shared controls ───────────────────────────────────────────────────── */
+    .button,
+    .icon-button {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-5;
+        transition-duration: c.$duration;
+    }
+    .button:hover,
+    .icon-button:hover { background-color: s.lift(s.$surface-sunken, 6%); }
+    .button:active,
+    .icon-button:active { background-color: s.$accent; color: s.$on-accent; }
+    .button:insensitive { color: s.$on-surface-mute; }
+
+    .check-box StBoxLayout { spacing: c.$space-3; }
+    .check-box StBin {
+        width: 16px;
+        height: 16px;
+        border: c.$border-width solid s.$border-strong;
+        border-radius: c.$radius-small;
+        background-color: s.$surface-sunken;
+    }
+    .check-box:checked StBin {
+        background-color: s.$accent;
+        border-color: s.$accent;
+    }
+
+    .toggle-switch { color: s.$on-surface; }
+
+    .slider {
+        color: s.$accent;
+        -barlevel-height: 4px;
+        -barlevel-background-color: s.$surface-sunken;
+        -barlevel-active-background-color: s.$accent;
+        -barlevel-border-color: transparent;
+        -barlevel-active-border-color: transparent;
+        -barlevel-border-width: 0;
+    }
+
+    .keyboard-key {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+    }
+    .keyboard-key:checked,
+    .keyboard-key:active { background-color: s.$accent; color: s.$on-accent; }
+
+    /* ── looking glass ─────────────────────────────────────────────────────── */
+    /* The developer console. Styled plainly rather than skipped: with no fallback stylesheet an
+       unmentioned selector is not styled at all, and an unreadable debugger is worse than a plain
+       one. */
+    #LookingGlassDialog {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        spacing: c.$space-3;
+    }
+    #LookingGlassDialog .labels { spacing: c.$space-4; }
+    #LookingGlassDialog .notebook-tab {
+        color: s.$on-surface-dim;
+        padding: c.$space-2 c.$space-4;
+        border-radius: c.$radius;
+    }
+    #LookingGlassDialog .notebook-tab:selected {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .lg-dialog StEntry {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+    }
+    .lg-completions-text { color: s.$on-surface-mute; }
+    .lg-obj-inspector-title { font-weight: bold; }
+
+    /* ── odds and ends ─────────────────────────────────────────────────────── */
+    .lightbox { background-color: #000000; }
+    .flashspot { background-color: #ffffff; }
+
+    .hidden { color: transparent; }
+
+    .candidate-box {
+        border-radius: c.$radius;
+        padding: c.$space-2 c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .candidate-box:selected { background-color: s.$accent; color: s.$on-accent; }
+    .candidate-index { color: s.$on-surface-dim; }
+    .candidate-page-button { border-radius: c.$radius; padding: c.$space-2; }
+    .candidate-page-button:hover { background-color: $shell-hover; }
+
+    .input-source-switcher-symbol { font-size: 34pt; color: s.$on-surface; }
+
+    .pad-osd-window { background-color: $shell-overlay; }
+
+    .magnifier-zoom-region { border: 2px solid s.$accent; }
+
+    .ripple-box {
+        background-color: s.alpha(s.$accent, 0.3);
+        border-radius: 0 0 c.$radius-large 0;
+    }
+
+    /* ── the rest of the inventory ─────────────────────────────────────────── */
+    //
+    // Everything below is here for one reason: the Shell's own stylesheet mentions it, and this file
+    // REPLACES that stylesheet. A selector left out is not inherited from Adwaita — it is simply
+    // unstyled, which is how a theme ends up with a transparent on-screen keyboard or an invisible
+    // snap preview. The list was taken from the Shell's own css, so the boundary is its inventory
+    // rather than a guess about what a user will open.
+
+    /* Overview surfaces */
+    #overviewGroup { background-color: transparent; }
+    .overview-tile {
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .overview-tile:hover { background-color: $shell-hover; }
+    .overview-tile:selected,
+    .overview-tile:focus { background-color: s.alpha(s.$accent, c.$selection-cell-alpha); }
+
+    .workspace-background {
+        border-radius: c.$radius-large;
+        background-color: s.$surface;
+    }
+    .secondary-monitor-workspaces { spacing: c.$space-3; }
+    .workspace-animation { background-color: s.$surface; }
+    .workspace-switcher { spacing: c.$space-2; }
+    .ws-switcher-indicator {
+        background-color: s.alpha(s.$on-surface, 0.3);
+        border-radius: c.$radius-track;
+    }
+    .ws-switcher-indicator:active { background-color: s.$accent; }
+
+    .page-navigation-arrow { color: s.$on-surface-dim; }
+    .page-navigation-hint {
+        background-color: s.alpha(s.$on-surface, 0.08);
+        border-radius: c.$radius-large;
+    }
+
+    /* The preview that appears while a window is being snapped to an edge. */
+    .tile-preview {
+        background-color: s.alpha(s.$accent, c.$selection-cell-alpha);
+        border: c.$border-width solid s.$accent;
+    }
+    .select-area-rubberband {
+        background-color: s.alpha(s.$accent, c.$selection-cell-alpha);
+        border: c.$border-width solid s.$accent;
+    }
+
+    /* Search */
+    .search-entry {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-4;
+    }
+    .search-entry:focus { border-color: s.$accent; }
+
+    #searchResults { padding: c.$space-5; }
+    #searchResultsContent { spacing: c.$space-4; }
+    .search-section { spacing: c.$space-3; }
+    .search-statusbox { color: s.$on-surface-mute; padding: c.$space-6; }
+    .grid-search-results { spacing: c.$space-4; }
+
+    /* Notifications and the message view */
+    .message-view { spacing: c.$space-3; }
+    .message-list-controls { color: s.$on-surface-dim; spacing: c.$space-3; }
+    .message-dialog-content { spacing: c.$space-4; }
+    .media-message { border-radius: c.$radius; }
+    .message-media-control {
+        border-radius: c.$radius-track;
+        color: s.$on-surface;
+        padding: c.$space-3;
+    }
+    .message-media-control:hover { background-color: $shell-hover; }
+    .message-media-control:insensitive { color: s.$on-surface-mute; }
+
+    .notification-buttons-bin { spacing: c.$space-3; }
+    .notification-button {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-5;
+    }
+    .notification-button:hover { background-color: s.lift(s.$surface-sunken, 6%); }
+
+    /* Menus that are not the panel's */
+    .app-menu,
+    .background-menu { min-width: 200px; }
+    .apps-scroll-view { padding: c.$space-4; }
+    .popup-menu-ornament { width: 16px; color: s.$accent; }
+    .popup-ornamented-menu-item { spacing: c.$space-3; }
+    .combo-box-label { color: s.$on-surface; }
+    .dialog-list { spacing: c.$space-3; }
+    .dialog-list .dialog-list-item { padding: c.$space-3; border-radius: c.$radius; }
+    .dialog-list .dialog-list-item:hover { background-color: $shell-hover; }
+
+    .bt-device-item,
+    .nm-network-item { border-radius: c.$radius; padding: c.$space-3; }
+    .bt-menu-placeholder { color: s.$on-surface-mute; }
+    .device-subtitle { color: s.$on-surface-dim; font-size: 0.9em; }
+
+    #calendarArea { padding: c.$space-4; }
+    .clock-display-box { spacing: c.$space-2; }
+
+    /* Dialogs that only appear under particular circumstances */
+    .run-dialog { padding: c.$space-5; spacing: c.$space-4; }
+    .run-dialog .run-dialog-entry {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        width: 20em;
+    }
+    .run-dialog-error-box { color: s.$error; }
+    .run-dialog-description { color: s.$on-surface-dim; }
+
+    .polkit-dialog-user-layout { spacing: c.$space-4; padding-left: c.$space-4; }
+    .user-icon { border-radius: c.$radius-track; }
+    .welcome-dialog-image { border-radius: c.$radius-large; }
+    .parental-controls-shield { background-color: s.$surface; }
+
+    /* On-screen keyboard */
+    #keyboard {
+        background-color: $shell-panel;
+        border-top: c.$border-width solid $shell-border;
+    }
+    .key-container { spacing: c.$space-2; padding: c.$space-2; }
+    .keyboard-subkeys-boxpointer { -arrow-border-radius: c.$radius-large; }
+    .keyboard-brightness-level {
+        -barlevel-background-color: s.$surface-sunken;
+        -barlevel-active-background-color: s.$accent;
+    }
+    .word-suggestions { color: s.$on-surface-dim; spacing: c.$space-4; }
+
+    /* Emoji and input candidates */
+    .emoji-panel {
+        background-color: $shell-overlay;
+        border-radius: c.$radius-large;
+    }
+    .emoji-page { padding: c.$space-3; }
+    .candidate-page-button-box { spacing: c.$space-2; }
+    .candidate-page-button-previous,
+    .candidate-page-button-next { border-radius: c.$radius; padding: c.$space-2; }
+
+    /* Screenshot UI, the parts not already covered */
+    .screenshot-ui-area-selector { background-color: transparent; }
+    .screenshot-ui-area-indicator-shade { background-color: s.alpha(#000, 0.55); }
+    .screenshot-ui-screen-selector { border-radius: c.$radius; }
+    .screenshot-ui-window-selector { spacing: c.$space-4; }
+    .screenshot-ui-window-selector-window-border {
+        border: 2px solid s.$accent;
+        border-radius: c.$radius;
+    }
+    .screenshot-ui-window-selector-check {
+        background-color: s.$accent;
+        color: s.$on-accent;
+        border-radius: c.$radius-track;
+    }
+    .screenshot-ui-shot-cast-container {
+        background-color: s.$surface-sunken;
+        border-radius: c.$radius;
+        padding: c.$space-1;
+    }
+    .screenshot-ui-close-button {
+        border-radius: c.$radius-track;
+        color: s.$on-surface;
+        padding: c.$space-3;
+    }
+    .screenshot-ui-close-button:hover { background-color: $shell-hover; }
+    .screenshot-ui-tooltip {
+        background-color: $shell-overlay;
+        border: c.$border-width solid $shell-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-2 c.$space-4;
+    }
+
+    /* Login and lock, the parts not already covered */
+    .screen-shield-background { background-color: s.$surface; }
+    .login-dialog-logo-bin { padding: c.$space-7 0; }
+    .login-dialog-button-box,
+    .login-dialog-bottom-button-group { spacing: c.$space-4; }
+    .login-dialog-auth-list-title { color: s.$on-surface-dim; font-weight: bold; }
+    .login-dialog-auth-list-label { color: s.$on-surface; }
+    .login-dialog-not-listed-label { color: s.$on-surface-dim; }
+
+    #unlockDialogNotifications { spacing: c.$space-3; }
+    .unlock-dialog-notification-label { color: s.$on-surface; }
+    .unlock-dialog-notification-icon { icon-size: 16px; }
+    .unlock-dialog-notification-count-text {
+        background-color: s.$accent;
+        color: s.$on-accent;
+        border-radius: c.$radius-track;
+        padding: 0 c.$space-2;
+    }
+
+    /* Folders */
+    .app-folder-dialog-container { padding: c.$space-6; }
+    .rename-folder-popup .rename-folder-popup-item { border-radius: c.$radius; }
+
+    /* Looking Glass, the remaining panes */
+    #LookingGlassActors,
+    #LookingGlassWindows,
+    #LookingGlassExtensions,
+    #LookingGlassDebugFlags,
+    #LookingGlassPropertyInspector,
+    #LookingGlassEvaluator { spacing: c.$space-3; color: s.$on-surface; }
+
+    /* Small fry */
+    .shell-link { color: s.lift(s.$accent, 14%); }
+    .shell-link:hover { color: s.lift(s.$accent, 22%); }
+    .url-highlighter { color: s.lift(s.$accent, 14%); }
+    .system-action-icon {
+        background-color: s.$surface-sunken;
+        border-radius: c.$radius-track;
+        color: s.$on-surface;
+    }
+    .osd-monitor-label {
+        background-color: $shell-overlay;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        font-size: 3em;
+        padding: c.$space-5 c.$space-7;
+    }
+    .pie-timer { color: s.$accent; }
+    .ripple-pointer-location { background-color: s.alpha(s.$accent, 0.3); border-radius: c.$radius-track; }
+    .lowres-icon { icon-size: 16px; }
+    .icon-dropshadow { color: s.$on-surface; }
+}

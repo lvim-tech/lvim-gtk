@@ -1,0 +1,144 @@
+// lvim-gtk.config: the shape of the theme — everything that is not a colour.
+//
+// Kept apart from the palette on purpose. Colour answers "which theme is this"; the values here
+// answer "what does this theme feel like", and the two change for entirely different reasons. A
+// user who wants sharper corners should not have to touch a palette, and a new palette should not
+// silently change anyone's corner radius.
+//
+// Every value is `!default`, so a build can override any of them before importing:
+//
+//     @use 'config' with ($radius: 4px, $density: 'compact');
+
+// ── Corners ──────────────────────────────────────────────────────────────────
+
+// The theme ships SQUARE. Every value below is a role rather than a number — which family of
+// corners a widget belongs to — so roundness is restored one family at a time rather than by
+// hunting through the widget files. `@use 'config' with ($radius: 8px)` brings back the common
+// case and nothing else.
+
+$radius:            0 !default;     // buttons, entries, the common case
+$radius-small:      0 !default;     // checkboxes, small controls, badges
+$radius-large:      0 !default;     // cards, dialogs, popovers, menus
+$radius-window:     0 !default;     // the window's own corners
+$radius-track:      0 !default;     // switch, scrollbar slider, scale, progress
+
+// The corner of a control while it is FILLED with the accent — the current segment of a path bar,
+// a checked toggle, a suggested button, a hovered menu row.
+//
+// Its own knob rather than $radius because a filled shape reads far rounder than an outlined one at
+// the same number. On a plain button the corner is only implied by a hairline border; fill the same
+// button green and the colour draws the corner for you, so an identical 8px turns it into a pill.
+// Anything painted with the accent must take THIS value, not the value of the widget it happens to
+// live in, or the theme grows rounded green pills inside otherwise square chrome.
+$radius-active:     0 !default;
+
+// The radio button is the one shape that stays round, and it is not an oversight.
+//
+// A radio and a checkbox are the same size, sit in the same place and carry the same tick. Round
+// versus square is the ONLY thing telling the user "exactly one of these" apart from "any number of
+// these" — squaring it removes the distinction rather than restyling it. Kept as its own knob so
+// the choice is available anyway, instead of being enforced by the theme.
+$radius-radio:      9999px !default;
+
+// Same reasoning, other shape: an avatar is round because it is a portrait, not because the theme
+// rounded a corner. libadwaita draws one in about-dialogs, contact rows and user lists.
+$radius-avatar:     9999px !default;
+
+// ── Spacing ──────────────────────────────────────────────────────────────────
+//
+// One scale, used everywhere. Padding chosen per widget is how a theme ends up with six subtly
+// different gaps that nobody planned and everybody feels.
+
+$space-1:           2px !default;
+$space-2:           4px !default;
+$space-3:           6px !default;
+$space-4:           8px !default;
+$space-5:           12px !default;
+$space-6:           16px !default;
+$space-7:           24px !default;
+
+// ── Sizes ────────────────────────────────────────────────────────────────────
+
+$header-height:     46px !default;
+$control-height:    34px !default;  // buttons, entries, comboboxes
+$control-height-sm: 26px !default;
+$icon-size:         16px !default;
+$check-size:        16px !default;  // the box of a checkbox / radio, glyph included
+$check-spacing:     4px !default;   // gap between that box and its label
+$scrollbar-width:   8px !default;
+$scrollbar-width-hover: 12px !default;
+
+// ── Window manager decorations ───────────────────────────────────────────────
+//
+// XFWM4 and Metacity draw their own titlebar rather than letting the application draw it, so these
+// are the numbers a client-side headerbar never needs. Read by scripts/legacy and scripts/xfwm-assets
+// straight out of this file — the templates and the button images have to agree about how tall a
+// title bar is, and two hardcoded 34s in two languages would not stay equal for long.
+
+$wm-title-height:   34px !default;   // the decoration's own title bar
+$wm-button-size:    26px !default;   // the square a titlebar button occupies
+$wm-glyph:          10px !default;   // the cross / box / bar drawn inside it
+$wm-border:         1px !default;    // the frame edge around a non-maximised window
+
+// ── Lines ────────────────────────────────────────────────────────────────────
+
+$border-width:      1px !default;
+$focus-width:       2px !default;
+$focus-offset:      -3px !default;
+
+// ── Motion ───────────────────────────────────────────────────────────────────
+//
+// Short enough to feel immediate, long enough to be seen. Anything past ~200ms on a hover reads as
+// lag rather than as polish, which is why the fast tier exists and is the default.
+
+$duration-fast:     100ms !default;
+$duration:          150ms !default;
+$duration-slow:     250ms !default;
+$easing:            cubic-bezier(0.25, 0.46, 0.45, 0.94) !default;
+
+// ── Density ──────────────────────────────────────────────────────────────────
+//
+// 'default' or 'compact'. Compact shrinks the vertical rhythm without touching type size — the
+// setting people actually want on a laptop, as opposed to a smaller font that just becomes hard
+// to read.
+
+$density:           'default' !default;
+
+@function density-scale($value) {
+    @return if($density == 'compact', $value * 0.75, $value);
+}
+
+// ── Switches ─────────────────────────────────────────────────────────────────
+
+// How much of the accent washes over a GRID cell — an icon with its name under it — when it is
+// selected. A list row can be filled solid because its icon is small and beside the text; a grid
+// cell cannot, because filling it paints straight over the thumbnail you are selecting. That is
+// what libadwaita's own 25% was protecting, and it is worth keeping: the name gets the solid box
+// (which is where GTK3 file managers put it), the tile gets a wash the icon still reads through.
+//
+// 0 removes the wash entirely and leaves only the name highlighted.
+$selection-cell-alpha: 0.25 !default;
+
+// The corner of that wash, and the only rounded thing left in a square theme. It is here because
+// the wash hugs a word rather than filling a box: at 2px the corners just stop being sharp against
+// the letters, and it lands next to Nemo's own 3px (forced by nemo-style-application.css, which the
+// theme cannot override) instead of arguing with it.
+$selection-label-radius: 2px !default;
+
+// How strongly the same wash marks a merely HOVERED name. Below the selected one on purpose —
+// pointing at a file and having chosen it must not look the same.
+$hover-label-alpha: 0.12 !default;
+
+// Some applications deliberately neutralise the accent in part of their own window. Nautilus is the
+// case in point: its stylesheet sets `--accent-bg-color: #959595` on the list, grid and network
+// views, so a selected file is grey rather than accented and thumbnails are not tinted by it. It is
+// a defensible choice, and it is also why Nautilus showed no trace of the theme's colour where
+// Nemo was solidly green — including its selection checkboxes, which inherit the same value.
+//
+// On: the theme re-asserts its accent there. Off: the application's own decision stands.
+$app-accent-override: true !default;
+
+$shadows:           true !default;   // depth via shadow; off gives a flat look
+$gradients:         false !default;  // subtle gradients on raised surfaces
+$rimless:           false !default;  // drop the window border entirely
+$flat-headerbar:    false !default;  // headerbar shares the window background

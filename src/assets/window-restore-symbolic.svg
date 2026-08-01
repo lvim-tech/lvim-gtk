@@ -1,0 +1,9 @@
+<!-- lvim-gtk: restore — the window stepping back out of the screen.
+
+     The rear shape is an L-bracket rather than a second full square: a symbolic icon is one colour,
+     so a whole square behind would show through the front one's hollow centre and the two would
+     read as a lattice instead of as depth. The bracket stops where the front square starts. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <path d="M6 3 H13 V10 H11.5 V4.5 H6 Z"/>
+    <path fill-rule="evenodd" d="M3 6 H10 V13 H3 Z M4.5 7.5 V11.5 H8.5 V7.5 Z"/>
+</svg>

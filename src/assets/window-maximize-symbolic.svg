@@ -1,0 +1,5 @@
+<!-- lvim-gtk: maximise. An outlined square — the hole comes from the second subpath and
+     `fill-rule="evenodd"`, because a symbolic icon has one colour and no stroke to draw with. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <path fill-rule="evenodd" d="M3.5 3.5 H12.5 V12.5 H3.5 Z M5 5 V11 H11 V5 Z"/>
+</svg>

@@ -1,0 +1,9 @@
+// lvim-gtk — Cinnamon entry point.
+//
+// Same shape as the GNOME Shell entry: St resolves no variables, so every colour below arrives as a
+// literal that Sass computed from the semantic layer. The stylesheet replaces Cinnamon's own rather
+// than layering over it, which is why the widget file aims at Cinnamon's whole inventory.
+
+@use '../sass/cinnamon/base' as cinnamon;
+
+@include cinnamon.emit;

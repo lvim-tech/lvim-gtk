@@ -1,0 +1,637 @@
+// lvim-gtk.gtk3.base: the rules that make the GTK3 half a theme rather than a palette.
+//
+// WHY THIS FILE HAD TO EXIST. Stage 1 shipped colours only, and for GTK4 that was enough —
+// libadwaita paints the window itself from `window_bg_color`. GTK3 does not. It looks up a theme by
+// name, loads that theme's gtk.css AND NOTHING ELSE, and if the file never says `background-color`
+// on a window, the window is simply never painted: you see the desktop through it. That is exactly
+// what happened in Nemo.
+//
+// So a GTK3 theme cannot be a colour list. Every surface it wants painted, it must paint.
+//
+// Scope is the essentials — the widgets every application uses. Rarely-seen ones fall back to
+// GTK's built-in defaults, which now read correctly because the named colours are ours.
+
+@use '../semantic' as s;
+@use '../config' as c;
+
+@mixin emit {
+    /* ── the window itself ─────────────────────────────────────────────────── */
+    window,
+    .background {
+        background-color: s.$surface;
+        color: s.$on-surface;
+    }
+
+    window:backdrop,
+    .background:backdrop {
+        background-color: s.$surface-backdrop;
+        color: s.$on-surface-dim;
+    }
+
+    /* Dialogs and popups sit above the window, so they take the raised surface. */
+    window.dialog,
+    window.csd.popup,
+    messagedialog {
+        background-color: s.$surface-raised;
+        color: s.$on-surface;
+    }
+
+    /* A DIALOG'S TITLEBAR IS PART OF THE DIALOG, not a window header — and a message dialog has no
+       title to put in it. Left on the header surface it renders as a dark empty band across the top
+       of a confirmation box: a black rectangle above the question, which is exactly how it was
+       reported. It takes the dialog's own surface instead, and the message variant drops out
+       entirely because there is nothing in it to see. */
+    window.dialog > headerbar,
+    window.dialog > .titlebar {
+        background-color: s.$surface-raised;
+        border-bottom-color: s.$border;
+    }
+
+    messagedialog > headerbar,
+    messagedialog > .titlebar,
+    window.dialog.message > headerbar,
+    window.dialog.message > .titlebar,
+    window.csd.popup > headerbar {
+        background-color: transparent;
+        border-bottom: none;
+        min-height: 0;
+    }
+
+    /* The drag-select rectangle. Nemo does not draw it from a stylesheet rule but by ASKING for it:
+       nemo-icon-container.c:1390 saves the container's style context, adds GTK_STYLE_CLASS_RUBBERBAND
+       and calls gtk_style_context_get_background_color() / get_border_color(). A theme that never
+       mentions `.rubberband` therefore hands it whatever GTK's default is — which is why dragging
+       across a folder painted an opaque black box over the icons instead of a tinted band.
+       It is answered here, translucent, so the files under it stay visible while being chosen.
+
+       `.view.rubberband` is not belt and braces: Nemo adds the class to the CONTAINER's context,
+       and that container already carries `.view`. Both selectors would then be (0,1,0) — a tie the
+       later rule wins, and `.view` is later. Measured, not guessed: with `.rubberband` alone the
+       band came back as the opaque view background. */
+    rubberband,
+    .rubberband,
+    .view.rubberband,
+    iconview.view.rubberband,
+    flowbox rubberband,
+    treeview.view rubberband,
+    .content-view rubberband {
+        background-color: s.alpha(s.$accent, c.$selection-cell-alpha);
+        border: c.$border-width solid s.$accent;
+    }
+
+    /* ── headerbar and toolbars ────────────────────────────────────────────── */
+    headerbar,
+    .titlebar {
+        background-color: s.$surface-header;
+        color: s.$on-surface;
+        border-bottom: c.$border-width solid s.$border;
+        min-height: c.$header-height;
+        padding: 0 c.$space-3;
+    }
+
+    headerbar:backdrop,
+    .titlebar:backdrop {
+        background-color: s.$surface-backdrop;
+        color: s.$on-surface-dim;
+    }
+
+    headerbar .title { font-weight: bold; }
+    headerbar .subtitle { color: s.$on-surface-dim; font-size: 0.9em; }
+
+    toolbar,
+    .toolbar {
+        background-color: s.$surface;
+        padding: c.$space-2;
+    }
+
+    menubar {
+        background-color: s.$surface-header;
+        color: s.$on-surface;
+    }
+
+    /* ── content views ─────────────────────────────────────────────────────── */
+    /* `.view` and `textview text` are where a document lives: lists, file panes, editors. They take
+       the view surface rather than the window one, which is what makes content read as content. */
+    .view,
+    textview text,
+    iconview,
+    treeview.view {
+        background-color: s.$surface-view;
+        color: s.$on-surface;
+    }
+
+    .view:selected,
+    textview text:selected,
+    iconview:selected,
+    treeview.view:selected,
+    .view:selected:focus,
+    treeview.view:selected:focus {
+        background-color: s.$selection-bg;
+        color: s.$selection-fg;
+    }
+
+    treeview.view:hover { background-color: s.$state-hover; }
+
+    /* Column headers read as chrome, not as content. */
+    treeview.view header button {
+        background-color: s.$surface;
+        color: s.$on-surface-dim;
+        border: none;
+        border-right: c.$border-width solid s.$border;
+        border-bottom: c.$border-width solid s.$border;
+        border-radius: 0;
+        padding: c.$space-2 c.$space-3;
+    }
+
+    /* ── sidebars ──────────────────────────────────────────────────────────── */
+    .sidebar,
+    placessidebar,
+    stacksidebar {
+        background-color: s.$surface-sidebar;
+        color: s.$on-surface;
+        border-right: c.$border-width solid s.$border;
+    }
+
+    .sidebar list,
+    placessidebar list { background-color: transparent; }
+
+    .sidebar row:hover,
+    placessidebar row:hover { background-color: s.$state-hover; }
+
+    .sidebar row:selected,
+    placessidebar row:selected {
+        background-color: s.$selection-bg;
+        color: s.$selection-fg;
+    }
+
+    /* ── buttons ───────────────────────────────────────────────────────────── */
+    button {
+        background-color: s.lift(s.$surface, 5%);
+        color: s.$on-surface;
+        border: c.$border-width solid s.$border;
+        border-radius: c.$radius;
+        padding: c.$space-2 c.$space-5;
+        min-height: c.$control-height;
+        transition: background-color c.$duration c.$easing;
+    }
+
+    button:hover { background-color: s.lift(s.$surface, 9%); }
+
+    /* An ICON-ONLY button should come out square, and does not without being told. It inherits the
+       horizontal padding of a button that has words in it — sensible either side of a label, far
+       too much either side of a 16px glyph — while `min-height` still holds it to the full control
+       height. The result is a tall rectangle, which is what the view-mode toggles in a file
+       manager's status bar looked like. Equal padding, and a width that matches the height. */
+    button.image-button {
+        min-width: c.$control-height;
+        padding-left: c.$space-2;
+        padding-right: c.$space-2;
+    }
+
+    /* Filled with the accent: the pressed button, and the current segment of a path bar — which is
+       the large green shape in a file manager's toolbar. $radius-active, not $radius: see config. */
+    button:active,
+    button:checked {
+        background-color: s.$accent;
+        color: s.$on-accent;
+        border-color: s.$accent;
+        border-radius: c.$radius-active;
+    }
+    button:disabled {
+        color: s.$on-surface-mute;
+        opacity: s.$state-disabled;
+    }
+
+    /* Flat buttons are the headerbar's icon buttons; they must not draw a box until touched. */
+    button.flat,
+    headerbar button,
+    toolbar button {
+        background-color: transparent;
+        border-color: transparent;
+    }
+    button.flat:hover,
+    headerbar button:hover,
+    toolbar button:hover { background-color: s.$state-hover; }
+
+    /* Window controls, from the theme rather than from the icon theme — same reason as the GTK4
+       half: an icon theme that does not define them inherits somebody else's, and the shapes stop
+       matching the rest of the desktop. GTK3 names the state class `.maximize` on the button and
+       `.maximized` on the window, exactly as GTK4 does. */
+    button.titlebutton.close image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-close-symbolic.svg"));
+    }
+    button.titlebutton.minimize image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-minimize-symbolic.svg"));
+    }
+    button.titlebutton.maximize image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-maximize-symbolic.svg"));
+    }
+    window.maximized button.titlebutton.maximize image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-restore-symbolic.svg"));
+    }
+
+    button.suggested-action {
+        background-color: s.$accent;
+        color: s.$on-accent;
+        border-color: s.$accent;
+        border-radius: c.$radius-active;
+    }
+    button.destructive-action {
+        background-color: s.$destructive;
+        color: s.$on-destructive;
+        border-color: s.$destructive;
+        border-radius: c.$radius-active;
+    }
+
+    /* ── entries ───────────────────────────────────────────────────────────── */
+    entry,
+    spinbutton:not(.vertical) {
+        background-color: s.$surface-sunken;
+        color: s.$on-surface;
+        border: c.$border-width solid s.$border;
+        border-radius: c.$radius;
+        padding: c.$space-2 c.$space-4;
+        min-height: c.$control-height;
+        caret-color: s.$accent;
+    }
+
+    entry:focus,
+    entry:focus-within {
+        border-color: s.$border-focus;
+        box-shadow: inset 0 0 0 1px s.$border-focus;
+    }
+    entry:disabled { color: s.$on-surface-mute; }
+    entry selection { background-color: s.$selection-bg; color: s.$selection-fg; }
+    entry placeholder { color: s.$on-surface-mute; }
+
+    /* ── menus and popovers ────────────────────────────────────────────────── */
+    menu,
+    .menu,
+    popover,
+    popover.background {
+        background-color: s.$surface-raised;
+        color: s.$on-surface;
+        border: c.$border-width solid s.$border;
+        border-radius: c.$radius-large;
+        padding: c.$space-2;
+    }
+
+    /* $radius-active, not $radius-small: a hovered row is FILLED with the accent, which puts it in
+       the same family as a checked button and a suggested action. Leaving it on its own radius is
+       how a menu ends up with a rounded green pill inside a theme whose every other accent fill is
+       square — the corner has to follow the fill, not the widget. */
+    menuitem,
+    popover modelbutton {
+        border-radius: c.$radius-active;
+        padding: c.$space-2 c.$space-4;
+        min-height: c.$control-height-sm;
+    }
+    menuitem:hover,
+    popover modelbutton:hover {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    menuitem:disabled { color: s.$on-surface-mute; }
+
+    separator {
+        background-color: s.$border;
+        min-width: 1px;
+        min-height: 1px;
+    }
+
+    /* ── notebooks ─────────────────────────────────────────────────────────── */
+    notebook > header {
+        background-color: s.$surface;
+        border-color: s.$border;
+    }
+    notebook > header > tabs > tab {
+        color: s.$on-surface-dim;
+        padding: c.$space-3 c.$space-5;
+        border-bottom: 2px solid transparent;
+    }
+    notebook > header > tabs > tab:checked {
+        color: s.$on-surface;
+        border-bottom-color: s.$accent;
+    }
+    notebook > header > tabs > tab:hover { color: s.$on-surface; }
+    notebook > stack { background-color: s.$surface; }
+
+    /* ── scrollbars ────────────────────────────────────────────────────────── */
+    /* An overlay on the content, not a rail beside it. The trough stays invisible until the pointer
+       is on the bar, and the thumb is a wash rather than a fill — see $scrollbar-slider for why a
+       permanently solid scrollbar is the wrong instrument, and why these three strengths are the
+       ones libadwaita already uses. No accent on drag either: the accent means "you chose this",
+       and dragging a scrollbar chooses nothing. */
+    scrollbar {
+        background-color: transparent;
+        border: none;
+    }
+    scrollbar trough { background-color: transparent; }
+    scrollbar:hover trough { background-color: s.$scrollbar-trough; }
+
+    scrollbar slider {
+        background-color: s.$scrollbar-slider;
+        border-radius: c.$radius-track;
+        min-width: c.$scrollbar-width;
+        min-height: c.$scrollbar-width;
+        margin: 2px;
+        transition: background-color c.$duration c.$easing;
+    }
+    scrollbar slider:hover { background-color: s.$scrollbar-slider-hover; }
+    scrollbar slider:active { background-color: s.$scrollbar-slider-active; }
+    scrollbar slider:disabled { background-color: transparent; }
+
+    /* ── checks and radios ─────────────────────────────────────────────────── */
+    //
+    // GTK3 DOES NOT DRAW THE TICK. gtk_render_check() paints a background and a frame and then
+    // renders whatever `-gtk-icon-source` names, tinted with `color` — so a theme that styles the
+    // box and stops has built a checkbox where "on" is a filled square, "off" is an empty one, and
+    // "indeterminate" is indistinguishable from "on". The glyph is not decoration here, it is the
+    // entire state indicator, and it must be supplied by the theme.
+    //
+    // The three assets are ours and live beside the css. `-gtk-recolor` is what makes them symbolic:
+    // GTK re-fills every shape in the file with the widget's current `color`, which is why the
+    // tick follows $on-accent when checked and the row's text colour when it is a menu item.
+    //
+    // Deliberately NO `-gtk-icontheme()` fallback behind them. It looks like insurance and is not:
+    // the assets ship inside the theme, so they cannot go missing, and the only failure they could
+    // cover — librsvg unable to recolor an svg — is exactly the failure that would take the icon
+    // theme's own symbolic icons down with it. A fallback here protects against nothing while
+    // making the theme depend on icon names (`radio-checked-symbolic`) that freedesktop never
+    // standardised and half the icon themes do not ship.
+
+    check,
+    radio {
+        min-width: c.$check-size;
+        min-height: c.$check-size;
+        margin: 0 c.$check-spacing;
+        padding: 0;
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid s.$border-strong;
+        color: s.$on-accent;
+        transition: background-color c.$duration c.$easing, border-color c.$duration c.$easing;
+        -gtk-icon-source: none;
+    }
+
+    check:only-child,
+    radio:only-child { margin: 0; }
+
+    check { border-radius: c.$radius-small; }
+    radio { border-radius: c.$radius-radio; }
+
+    check:hover,
+    radio:hover { border-color: s.$accent; }
+
+    check:checked,
+    check:indeterminate,
+    radio:checked,
+    radio:indeterminate {
+        background-color: s.$accent;
+        border-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    check:checked {
+        -gtk-icon-source: image(-gtk-recolor(url("lvim-assets/check-symbolic.svg")),
+                                -gtk-icontheme("object-select-symbolic"));
+    }
+
+    check:indeterminate,
+    radio:indeterminate {
+        -gtk-icon-source: image(-gtk-recolor(url("lvim-assets/dash-symbolic.svg")),
+                                -gtk-icontheme("list-remove-symbolic"));
+    }
+
+    radio:checked {
+        -gtk-icon-source: image(-gtk-recolor(url("lvim-assets/bullet-symbolic.svg")),
+                                -gtk-icontheme("radio-checked-symbolic"));
+    }
+
+    check:disabled,
+    radio:disabled {
+        opacity: s.$state-disabled;
+    }
+
+    check:backdrop,
+    radio:backdrop {
+        background-color: s.$surface-backdrop;
+        border-color: s.$border;
+    }
+
+    check:checked:backdrop,
+    check:indeterminate:backdrop,
+    radio:checked:backdrop,
+    radio:indeterminate:backdrop {
+        background-color: s.sink(s.$accent, 8%);
+        border-color: s.sink(s.$accent, 8%);
+    }
+
+    /* In a MENU the row is already a pressed target and already highlights on hover, so a filled
+       accent box beside the label is one indicator too many — and on a hovered row it would be
+       accent-on-accent. Menu checks are drawn as the glyph alone, in the row's own text colour. */
+    menu menuitem check,
+    menu menuitem radio,
+    popover modelbutton check,
+    popover modelbutton radio {
+        background-color: transparent;
+        border-color: transparent;
+        color: inherit;
+    }
+
+    /* The label of a checkbutton sits against the box; without this it touches the frame. */
+    checkbutton,
+    radiobutton {
+        padding: c.$space-1 0;
+        color: s.$on-surface;
+    }
+
+    checkbutton label:not(:only-child),
+    radiobutton label:not(:only-child) { margin: 0 c.$check-spacing; }
+
+    /* ── switches ──────────────────────────────────────────────────────────── */
+
+    switch {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid s.$border;
+        border-radius: c.$radius-track;
+        min-width: 44px;
+        min-height: 24px;
+    }
+    switch:checked { background-color: s.$accent; border-color: s.$accent; }
+    switch slider {
+        background-color: s.$on-surface;
+        border-radius: c.$radius-track;
+        min-width: 20px;
+        min-height: 20px;
+    }
+
+    /* ── progress and sliders ──────────────────────────────────────────────── */
+    /* $track-trough, not a named surface: a scale sits in a status bar as readily as in a window,
+       and a colour picked for one of those is invisible on the other. See _semantic.scss. */
+    progressbar trough,
+    scale trough {
+        background-color: s.$track-trough;
+        border-radius: c.$radius-track;
+        min-height: 4px;
+    }
+    progressbar progress,
+    scale highlight {
+        background-color: s.$accent;
+        border-radius: c.$radius-track;
+    }
+    /* The knob is NOT the accent — see $slider-knob. The filled part of the track is the accent, so
+       a knob painted the same colour disappears into it and the control stops looking like
+       something you can drag. */
+    scale slider {
+        background-color: s.$slider-knob;
+        border: c.$border-width solid s.$border-strong;
+        border-radius: c.$radius-track;
+        min-width: 16px;
+        min-height: 16px;
+    }
+    scale slider:hover { background-color: s.lift(s.$slider-knob, 6%); }
+    scale slider:disabled { background-color: s.$on-surface-mute; }
+
+    /* ── tooltip, infobar, statusbar ───────────────────────────────────────── */
+    tooltip,
+    tooltip.background {
+        background-color: s.$surface-raised;
+        color: s.$on-surface;
+        border: c.$border-width solid s.$border;
+        border-radius: c.$radius;
+    }
+
+    infobar { background-color: s.$surface-raised; color: s.$on-surface; }
+    infobar.warning { background-color: s.$warning; color: s.$on-warning; }
+    infobar.error { background-color: s.$error; color: s.$on-error; }
+
+    statusbar {
+        background-color: s.$surface;
+        color: s.$on-surface-dim;
+        padding: c.$space-2 c.$space-4;
+    }
+
+    /* ── links and selection ───────────────────────────────────────────────── */
+    link, *:link { color: s.lift(s.$accent, 14%); }
+    *:selected { background-color: s.$selection-bg; color: s.$selection-fg; }
+
+    /* ── focus ─────────────────────────────────────────────────────────────── */
+    *:focus-visible {
+        outline: c.$focus-width solid s.$border-focus;
+        outline-offset: c.$focus-offset;
+    }
+
+    /* ── Cinnamon: Nemo ────────────────────────────────────────────────────── */
+    //
+    // Nemo does not merely read the theme, it AUDITS it. On startup it stringifies the active
+    // theme's gtk.css and searches for the literal substring "nemo"; finding none it logs "The
+    // theme appears to have no nemo support. Adding some…" and installs its own provider at
+    // GTK_STYLE_PROVIDER_PRIORITY_APPLICATION — 600, i.e. ABOVE the theme's 200 (see
+    // src/nemo-application.c, add_fallback_mandatory_css_provider). Any theme without the word is
+    // therefore partly overruled inside Nemo, permanently and silently.
+    //
+    // This section is how a theme opts out: it names Nemo's real classes, so the audit passes and
+    // the injected provider is never created. That is the supported seam, not a trick — but it
+    // comes with an obligation. The provider we are declining shipped three things Nemo calls
+    // mandatory ("a couple things that we cannot do without"), so all three are reproduced below,
+    // in-palette. Dropping any of them leaves Nemo genuinely broken, not merely unstyled.
+    //
+    // Not covered here: the desktop. nemo-style-application.css is loaded unconditionally, also at
+    // APPLICATION priority, and owns .nemo-desktop — fighting it back would be a patch over
+    // something the application legitimately controls.
+
+    /* The file panes. Nemo's icon view is a canvas, not a GtkIconView: NemoIconViewContainer adds
+       .view to its own node and NemoIconCanvasItem adds .nemo-canvas-item, then paints selection
+       with gtk_render_background() on that same node at :selected. The generic .view rules above
+       therefore already reach both views, and RESTATING the resting background here would be worse
+       than redundant — `.nemo-window .nemo-window-pane .view` carries three classes and outranks
+       `.view:selected`, which is exactly how you kill selection in the list view while believing you
+       styled it. Only what is genuinely Nemo-specific belongs below. */
+    /* A WASH, not a fill, and the same one the GTK4 half puts on a grid cell — so selecting a file
+       looks the same whichever file manager is open. Nemo can only paint the label's rectangle (its
+       canvas draws the icon separately, with no background node of its own), so the wash lands
+       there rather than over the whole tile; the point is that neither toolkit stamps a solid block
+       on top of an icon any more. Text stays the normal foreground: a 25% wash does not need, and
+       cannot carry, an inverted one. */
+    .nemo-window .nemo-canvas-item:selected {
+        background-color: s.alpha(s.$selection-bg, c.$selection-cell-alpha);
+        color: s.$on-surface;
+    }
+
+    /* Same for a plain GtkIconView in any other GTK3 application. The specificity is deliberate:
+       `.view:selected` above is (0,2,0) and would otherwise outrank a bare `iconview:selected`. */
+    iconview.view:selected,
+    iconview.view:selected:focus,
+    flowboxchild:selected {
+        background-color: s.alpha(s.$selection-bg, c.$selection-cell-alpha);
+        color: s.$on-surface;
+    }
+
+    /* :not(:selected) for the same reason in the other direction — equal specificity to the rule
+       above but written later, so an unqualified :hover would grey out the file you just picked. */
+    .nemo-window .nemo-canvas-item:hover:not(:selected) {
+        background-color: s.$state-hover;
+    }
+
+    /* MANDATORY 1 — the inactive pane in dual-pane (F3) mode. Without a distinct background the
+       two panes are indistinguishable and there is no way to see which one has focus. */
+    .nemo-window .nemo-inactive-pane .view:not(:selected),
+    .nemo-window .nemo-inactive-pane iconview,
+    .nemo-window .nemo-inactive-pane .nemo-canvas-item:not(:selected) {
+        background-color: s.$surface-backdrop;
+        color: s.$on-surface-dim;
+    }
+
+    /* MANDATORY 2 — the rename box in the icon view. It is an EelEditableLabel, whose node is named
+       `widget`, so none of the `entry` rules above can ever match it; unstyled it renders as
+       invisible text on the pane. */
+    .nemo-window .nemo-window-pane widget.entry {
+        background-color: s.$surface-sunken;
+        color: s.$on-surface;
+        border: c.$border-width solid s.$accent;
+        border-radius: c.$radius-small;
+        caret-color: s.$accent;
+    }
+
+    .nemo-window .nemo-window-pane widget.entry:selected {
+        background-color: s.$selection-bg;
+        color: s.$selection-fg;
+        border-color: s.$accent;
+    }
+
+    /* MANDATORY 3 — the floating status overlay shown when the statusbar is switched off. It has no
+       background of its own and would be unreadable text floating over the file list. */
+    .floating-bar {
+        background-color: s.$surface-raised;
+        color: s.$on-surface;
+        border: c.$border-width solid s.$border;
+        border-bottom-width: 0;
+        border-radius: c.$radius 0 0;
+        padding: c.$space-1 c.$space-4;
+    }
+
+    .floating-bar button { background-color: transparent; border-color: transparent; }
+
+    /* The places sidebar's disk-usage bars, drawn from GTK style PROPERTIES rather than from CSS
+       colours. Nemo's own defaults are loaded at PRIORITY_FALLBACK (1), so these win.
+
+       ONE PAIR OF COLOURS HAS TO SERVE BOTH BACKGROUNDS, and that is not a simplification — it is
+       forced. nemo-cell-renderer-disk.c:222 reads them with
+       `gtk_style_context_get_style (gtk_widget_get_style_context (widget), …)`: the TREE VIEW's
+       context, in whatever state the tree view is, which is never `:selected`. A `.places-treeview:
+       selected` rule therefore cannot match — Nemo ships one itself and it is dead code too.
+
+       So the used portion must be legible on the sidebar surface AND on the selection fill. That
+       rules out the accent, which was the first choice here and which IS the selection fill: on the
+       selected row the bar vanished into the green completely. The foreground colour works against
+       both, being far from either. */
+    .nemo-window .places-treeview {
+        -NemoPlacesTreeView-disk-full-bg-color: #{s.$border};
+        -NemoPlacesTreeView-disk-full-fg-color: #{s.$on-surface};
+    }
+
+    /* The path/notice bar above the file list, and the tab strip. */
+    .nemo-cluebar-label { color: s.$on-surface-dim; }
+    .nemo-window notebook > stack { background-color: s.$surface-view; }
+    .nemo-window .nemo-tab-close-button { padding: 0; min-width: 16px; min-height: 16px; }
+}

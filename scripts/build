@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# lvim-gtk build — compile one palette into an installable theme.
+#
+#   scripts/build [style] [name]
+#
+# Produces build/<name>/ with the layout a GTK theme is expected to have. The GTK4 half is copied
+# into place by scripts/install, because libadwaita does not read themes from ~/.local/share/themes.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+STYLE="${1:-everforest_dark}"
+NAME="${2:-Lvim-$(echo "$STYLE" | sed -E 's/(^|_)([a-z])/\U\2/g')}"
+OUT="build/$NAME"
+
+command -v sass >/dev/null || { echo "sass is required"; exit 1; }
+
+# --no-charset above is not cosmetic. dart-sass prepends `@charset "UTF-8";` as soon as the output
+# contains a non-ASCII byte — and the comments in this theme are full of box-drawing rules. GTK's
+# CSS parser knows @import, @define-color and @keyframes and nothing else, so that first line makes
+# every GTK3 application log `Theme parsing error: gtk.css:1:0: unknown @ rule` on startup.
+
+[ -f "palettes/${STYLE}.scss" ] && cp "palettes/${STYLE}.scss" src/sass/_palette.scss
+
+rm -rf "$OUT"
+mkdir -p "$OUT"/{gtk-3.0,gtk-4.0}
+
+sass --no-source-map --no-charset --style=expanded src/main/gtk3.scss "$OUT/gtk-3.0/gtk.css"
+cp "$OUT/gtk-3.0/gtk.css" "$OUT/gtk-3.0/gtk-dark.css"
+
+# The symbolic glyphs — checks, radios, window controls. GTK resolves url() in a stylesheet relative
+# to THAT stylesheet, so they must sit beside each css, not merely somewhere in the theme. Hence two
+# copies: the GTK4 half is installed to a different directory entirely (see scripts/install).
+cp -r src/assets "$OUT/gtk-3.0/lvim-assets"
+cp -r src/assets "$OUT/gtk-4.0/lvim-assets"
+
+# GTK2, Metacity and XFWM4 are not CSS and cannot come out of Sass. They are rendered from templates
+# filled with the colours THIS BUILD just computed — see scripts/legacy for why they read the
+# compiled css rather than deriving anything themselves.
+./scripts/legacy "$OUT"
+./scripts/xfwm-assets "$OUT"
+sass --no-source-map --no-charset --style=expanded src/main/gtk4.scss "$OUT/gtk-4.0/gtk.css"
+
+# GNOME Shell. Loaded by the User Themes extension from here; St has no cascade to fall back
+# through, so this file is the whole stylesheet rather than a patch over one.
+mkdir -p "$OUT/gnome-shell"
+sass --no-source-map --no-charset --style=expanded src/main/gnome-shell.scss "$OUT/gnome-shell/gnome-shell.css"
+sass --no-source-map --no-charset --style=expanded src/main/pad-osd.scss "$OUT/gnome-shell/pad-osd.css"
+
+# Cinnamon. Also St, also a full replacement stylesheet — and it additionally names a dozen images
+# it cannot draw itself, which scripts/cinnamon-assets generates in this palette.
+mkdir -p "$OUT/cinnamon"
+sass --no-source-map --no-charset --style=expanded src/main/cinnamon.scss "$OUT/cinnamon/cinnamon.css"
+./scripts/cinnamon-assets "$OUT"
+
+# A metatheme declares only what it actually ships. The generated file used to also claim
+# MetacityTheme=$NAME, IconTheme=Adwaita and CursorTheme=Adwaita — the first names a metacity-1/
+# directory that does not exist, and the other two would have a metatheme switcher replace the
+# user's own icon and cursor themes with Adwaita's. Add each line back when the thing exists.
+cat > "$OUT/index.theme" <<INDEX
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=$NAME
+Comment=lvim-tech theme, colours generated from lvim-colorscheme ($STYLE)
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=$NAME
+INDEX
+
+echo "done: $OUT  ($(grep -c '@define-color' "$OUT/gtk-4.0/gtk.css") colours)"

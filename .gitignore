@@ -1,0 +1,8 @@
+build/
+dist/
+*.tar.gz
+doc/tags
+
+# Build state, not source: scripts/build copies the chosen palette here before compiling, so it
+# holds whichever style was built last and would make every build dirty the working tree.
+src/sass/_palette.scss

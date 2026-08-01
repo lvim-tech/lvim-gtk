@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# lvim-gtk install — put built themes where each toolkit looks for them.
+#
+# GTK3 reads ~/.local/share/themes/<Name>/gtk-3.0/. libadwaita reads NEITHER that nor
+# gtk-theme-name: its only input is ~/.config/gtk-4.0/gtk.css, so the GTK4 half is copied there too.
+# That is the supported path, not a workaround — every theme that restyles GTK4 does the same.
+#
+#   scripts/install everforest_soft   # place it and make it active
+#   scripts/install --all             # place every built theme, activate none
+#
+# Either way a switcher is installed to ~/.local/bin/lvim-gtk-select, so the themes stay usable
+# after this repository is deleted.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=scripts/_common.sh
+. scripts/_common.sh
+
+# ── --all: fill the list, choose nothing ─────────────────────────────────────
+#
+# Activation is singular by nature — one gtk-theme-name, one GTK4 stylesheet — so "install all of
+# them" cannot mean "activate all of them"; the forty-eighth would simply win. It means putting them
+# where a switcher can see them, which is what makes lvim-gtk-select worth having.
+if [ "${1:-}" = "--all" ]; then
+    built=$(find build -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
+    [ -n "$built" ] || { echo "nothing in build/ — run scripts/build first"; exit 1; }
+
+    n=0
+    while IFS= read -r t; do
+        printf '  %s… ' "$t"
+        if place "$t"; then n=$((n + 1)); printf '%s✓%s\n' "$green" "$off"; fi
+    done <<< "$built"
+
+    install_selector
+    printf '\n'
+    ok "$n installed in $THEMES"
+    current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'" || true)
+    note "active theme unchanged: ${current:-none}"
+    note "switch with: lvim-gtk-select   (works without this repository)"
+    exit 0
+fi
+
+NAME="${1:-}"
+[ -z "$NAME" ] && NAME="$(find build -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort | head -1)"
+
+# A style name is accepted as well as a theme name — see theme_name() for why.
+NAME="$(theme_name "$NAME")"
+
+if [ ! -d "build/$NAME" ]; then
+    echo "no build/$NAME — run scripts/build first"
+    echo
+    echo "built and ready to install:"
+    find build -maxdepth 1 -mindepth 1 -type d -printf '  %f\n' 2>/dev/null | sort \
+        || echo "  (nothing in build/)"
+    exit 1
+fi
+
+place "$NAME"
+
+# Putting the files in place is only half of it; pointing the toolkits at them is activate(), which
+# lvim-gtk-select uses on its own to switch between themes already installed.
+activate "$NAME"
+install_selector
+
+echo "installed: $THEMES/$NAME"
+echo "GTK3 theme: $CFG3/settings.ini + gsettings"
+echo "GTK4:       $CFG4/gtk.css"
+echo "switcher:   $HOME/.local/bin/lvim-gtk-select"

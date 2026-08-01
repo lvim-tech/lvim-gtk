@@ -1,0 +1,262 @@
+*lvim-gtk.txt*                     A desktop theme generated from lvim-colorscheme
+
+==============================================================================
+CONTENTS                                                      *lvim-gtk-contents*
+
+  1. Introduction ............................ |lvim-gtk-introduction|
+  2. What a theme contains ................... |lvim-gtk-contents-of-a-theme|
+  3. Building ................................ |lvim-gtk-building|
+  4. Installing .............................. |lvim-gtk-installing|
+  5. Architecture ............................ |lvim-gtk-architecture|
+  6. Configuration ........................... |lvim-gtk-configuration|
+  7. The accent .............................. |lvim-gtk-accent|
+  8. Toolkit notes ........................... |lvim-gtk-toolkits|
+  9. Requirements ............................ |lvim-gtk-requirements|
+
+  Guided install ............................. |lvim-gtk-setup|
+
+==============================================================================
+1. INTRODUCTION                                           *lvim-gtk-introduction*
+
+lvim-gtk turns every style lvim-colorscheme ships into a complete desktop
+theme. The editor, the file manager, the window decorations and the shell all
+wear the same colours because all of them are derived from the same palette.
+
+There are no hand-maintained copies in between: change a palette, rebuild, and
+every toolkit follows.
+
+==============================================================================
+2. WHAT A THEME CONTAINS                            *lvim-gtk-contents-of-a-theme*
+
+  gtk-3.0/        every GTK3 application. `lvim-assets/` beside it holds the
+                  check, radio and window-control glyphs the theme supplies
+                  itself.
+  gtk-4.0/        GTK4 and libadwaita. Installed to `~/.config/gtk-4.0/` — the
+                  only place libadwaita looks.
+  gtk-2.0/        legacy GTK2 applications.
+  metacity-1/     Metacity, Marco, GNOME Flashback, Compiz.
+  xfwm4/          XFCE's window manager: `themerc` plus 62 generated images.
+  gnome-shell/    GNOME Shell, through the User Themes extension.
+  cinnamon/       the Cinnamon desktop, plus the 14 images it names.
+
+==============================================================================
+3. BUILDING                                                   *lvim-gtk-building*
+
+                                                                 *lvim-gtk-setup*
+The guided way, if you would rather not learn the scripts first: >sh
+    scripts/setup                  " with questions
+    scripts/setup everforest_dark  " straight through
+    scripts/setup --all            " build every style, install none
+<
+It checks what is installed, fetches the colours, lets you choose a style,
+builds it, installs it — and then says what is left to do BY HAND, because not
+everything is selected by `gtk-theme-name`: the GNOME Shell and Cinnamon themes
+are chosen separately, and running applications cache the theme at startup.
+
+The individual steps, if you prefer them: >sh
+    scripts/palettes
+    scripts/build everforest_dark
+<
+`scripts/palettes` extracts the colours from lvim-colorscheme. It does NOT need
+that repository checked out: a local copy wins when there is one, because
+regenerating after editing a palette is the point of running it, and otherwise
+the sources are downloaded into `~/.cache/lvim-gtk/`.
+
+>sh
+    scripts/palettes --repo                # always the published sources
+    scripts/palettes --repo --ref v2.1.0   # a tag or a branch
+    scripts/palettes --colorscheme PATH    # a specific copy
+<
+Neovim does the reading, and it has to: a third of the styles are FUNCTIONS
+that compute their palette at call time rather than tables, so parsing the Lua
+text silently drops them.
+
+To build every style:
+
+>sh
+    for p in palettes/*.scss; do scripts/build "$(basename "$p" .scss)"; done
+<
+==============================================================================
+4. INSTALLING                                               *lvim-gtk-installing*
+
+>sh
+    scripts/install Lvim-EverforestDark
+<
+This writes the theme to `~/.local/share/themes/`, copies the GTK4 half to
+`~/.config/gtk-4.0/`, and sets `gtk-theme-name` in BOTH GSettings and
+`settings.ini`.
+
+Setting only one is a trap: the two disagree, and which one wins depends on
+whether a settings daemon is running — that is, on how the application happened
+to be launched.
+
+If a previous theme generator has left a `gtk.css` of its own in
+`~/.config/gtk-3.0/`, the installer moves it into `before-lvim/`. That file is
+loaded at GTK_STYLE_PROVIDER_PRIORITY_USER (800), above the theme's 200, and
+would silently override the palette.
+
+GNOME Shell and Cinnamon themes are chosen in their own settings, not by
+`gtk-theme-name`.
+
+==============================================================================
+5. ARCHITECTURE                                           *lvim-gtk-architecture*
+
+>
+    palettes/<style>.scss     raw colours, generated from lvim-colorscheme
+            |
+    src/sass/_semantic.scss   what each colour is FOR — measured, not assumed
+            |
+    src/sass/_config.scss     everything that is not a colour
+            |
+            +-- gtk3/ gtk4/ shell/ cinnamon/   stylesheets, via Sass
+            +-- templates/ scripts/*-assets    the toolkits that are not CSS
+<
+A widget rule never names a colour. It names a ROLE — `$accent`, `$surface`,
+`$on-surface` — and the role is resolved once, in the semantic layer. That is
+what makes a new palette free: swapping it swaps every surface, border and
+state in one step, and no widget file changes.
+
+The semantic layer also MEASURES. Editor palettes are deliberately
+low-contrast; taken literally they produce a desktop whose secondary text sits
+at 2.3:1 against its own background. Foregrounds are therefore walked away from
+their background, hue held constant, until they clear a WCAG threshold. The
+accent is additionally walked away from the side its own text will come from,
+because contrast against the window says nothing about whether a fill can carry
+a label.
+
+GTK2, Metacity and XFWM4 predate the stylesheet and each speaks its own
+dialect. They are rendered from `src/templates/` by `scripts/legacy`, which
+reads the colours back out of the compiled GTK3 css rather than deriving
+anything itself — two implementations of one derivation disagree the day either
+changes.
+
+Two toolkits want pictures rather than rules. XFWM4 draws its titlebar buttons
+from image files; Cinnamon points `background-image` at a checkbox St cannot
+draw. Both sets are generated per palette by `scripts/xfwm-assets` and
+`scripts/cinnamon-assets`.
+
+==============================================================================
+6. CONFIGURATION                                         *lvim-gtk-configuration*
+
+Everything that is not a colour lives in `src/sass/_config.scss`. Every value is
+a `!default`, and each names a ROLE rather than a widget, so roundness comes
+back one family at a time.
+
+Corners — the theme ships square: >scss
+    $radius:                 0       " buttons, entries, the common case
+    $radius-small:           0       " checkboxes, small controls, badges
+    $radius-large:           0       " cards, dialogs, popovers, menus
+    $radius-window:          0       " the window's own corners
+    $radius-track:           0       " switch, scrollbar, scale, progress
+    $radius-active:          0       " anything FILLED with the accent
+    $radius-radio:           9999px  " stays round, see below
+    $radius-avatar:          9999px  " stays round, see below
+<
+`$radius-radio` and `$radius-avatar` are round on purpose and are knobs anyway.
+A radio and a checkbox are the same size, in the same place, with the same
+tick: round versus square is the ONLY thing saying "exactly one of these"
+instead of "any number of these". An avatar is round because it is a portrait.
+Squaring either removes a meaning rather than restyling it.
+
+Spacing: >scss
+    $space-1: 2px   $space-2: 4px   $space-3: 6px   $space-4: 8px
+    $space-5: 12px  $space-6: 16px  $space-7: 24px
+<
+Sizes: >scss
+    $header-height:          46px
+    $control-height:         34px    " buttons, entries, comboboxes
+    $control-height-sm:      26px
+    $icon-size:              16px
+    $check-size:             16px
+    $check-spacing:          4px
+    $scrollbar-width:        8px
+    $scrollbar-width-hover:  12px
+<
+Window manager decorations. Read by the asset generators as well as by the
+stylesheets, so the images and the themerc cannot disagree: >scss
+    $wm-title-height:        34px
+    $wm-button-size:         26px
+    $wm-glyph:               10px
+    $wm-border:              1px
+<
+Lines and motion: >scss
+    $border-width:           1px
+    $focus-width:            2px
+    $focus-offset:           -3px
+    $duration-fast:          100ms
+    $duration:               150ms
+    $duration-slow:          250ms
+    $easing:                 cubic-bezier(0.25, 0.46, 0.45, 0.94)
+    $density:                'default'   " or 'compact'
+<
+Selection. A list row fills solid; a grid cell takes a wash, because a solid
+fill paints over the very thumbnail being selected: >scss
+    $selection-cell-alpha:   0.25    " 0 leaves only the name marked
+    $selection-label-radius: 2px
+    $hover-label-alpha:      0.12    " pointing at is not choosing
+<
+Switches: >scss
+    $app-accent-override:    true
+    $shadows:                true    " off gives a flat look
+    $gradients:              false
+    $rimless:                false   " drop the window border entirely
+    $flat-headerbar:         false
+<
+`$app-accent-override` exists because some applications neutralise the accent
+inside their own window. Nautilus greys out the selection in its file views so
+that thumbnails are not tinted — defensible, and also why the theme's colour
+was invisible exactly where it mattered. On, the theme re-asserts its accent
+there; off, the application's decision stands.
+
+==============================================================================
+7. THE ACCENT                                                   *lvim-gtk-accent*
+
+`src/sass/_semantic.scss` holds one colour knob: >scss
+    $accent-source: p.$green-dark
+<
+Which palette colour is primary is a real decision, and getting it wrong is
+invisible in the code and glaring on screen. It is sourced from the key
+lvim-colorscheme itself uses for `TabLineSel` and `Title` — the editor's own
+"this is the chosen one" — so the desktop's selection agrees with the editor's.
+Because every palette carries its own value for that key, all styles keep their
+own identity rather than converging on one hue.
+
+==============================================================================
+8. TOOLKIT NOTES                                              *lvim-gtk-toolkits*
+
+Each toolkit needed a different KIND of answer, and the differences are worth
+knowing before editing.
+
+GTK3 ~
+Paints nothing it is not told to paint. A theme that ships only colours renders
+every window transparent, because GTK3 loads the theme's gtk.css and nothing
+else. Every surface the theme wants painted, it must paint.
+
+GTK4 / libadwaita ~
+The opposite: a complete stylesheet that already draws everything, and it
+bridges the legacy `@define-color` names into its own custom properties itself.
+Colour therefore arrives for free; only GEOMETRY needed answering, which is why
+that half is short.
+
+GNOME Shell and Cinnamon ~
+St has no custom properties at all, so the bridge that carried the palette into
+libadwaita does not exist — every colour is a literal that Sass computed. More
+importantly, a user theme REPLACES the stylesheet rather than layering over it:
+a selector left out is not styled by the default theme instead, it is not
+styled at all. Both files therefore aim at the whole inventory.
+
+GTK2, Metacity, XFWM4 ~
+No stylesheet at all. Rendered from templates, with images generated where the
+format cannot express a shape.
+
+==============================================================================
+9. REQUIREMENTS                                           *lvim-gtk-requirements*
+
+  sass       to compile the stylesheets
+  python3    for the template and asset generators
+  nvim       to regenerate the palettes from lvim-colorscheme
+
+Licence: BSD-3-Clause. Written from scratch; nothing is forked or copied from
+another theme.
+
+vim:tw=78:ts=8:ft=help:norl:

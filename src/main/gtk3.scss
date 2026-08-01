@@ -1,0 +1,9 @@
+// lvim-gtk — GTK3 entry point.
+//
+// Colours first, then the rules that paint with them. Order matters: `@define-color` must be
+// declared before any rule references it, and GTK3 resolves them in source order.
+@use '../sass/libadwaita/colors' as adw;
+@use '../sass/gtk3/base' as gtk3;
+
+@include adw.emit;
+@include gtk3.emit;

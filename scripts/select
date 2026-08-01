@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# lvim-gtk select — switch between themes that are ALREADY installed.
+#
+# No building, no downloading, no copying of a theme tree: this is the operation you want when the
+# work is done and you just fancy a different colour today.
+#
+# It exists as its own script because a general theme switcher cannot do this correctly. They set
+# `gtk-theme-name` and stop — but libadwaita ignores that setting and reads only
+# ~/.config/gtk-4.0/gtk.css, so switching from a settings dialog changes every GTK3 application and
+# leaves GTK4 on the previous theme. See activate() in _common.sh.
+#
+#   scripts/select                  # list what is installed and ask
+#   scripts/select everforest_soft  # straight to it
+#   scripts/select --list           # just show them, change nothing
+
+set -euo pipefail
+
+# This same file is installed as ~/.local/bin/lvim-gtk-select, so it has to work from two places:
+# beside the repository's scripts, and on its own after the repository has been deleted. Nothing
+# else here touches the source tree — activate() reads from ~/.local/share/themes.
+if [ -f "$(dirname "$0")/_common.sh" ]; then
+    cd "$(dirname "$0")/.."
+    # shellcheck source=scripts/_common.sh
+    . scripts/_common.sh
+elif [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/lvim-gtk/common.sh" ]; then
+    # shellcheck source=/dev/null
+    . "${XDG_DATA_HOME:-$HOME/.local/share}/lvim-gtk/common.sh"
+else
+    echo "lvim-gtk: cannot find common.sh — reinstall with scripts/install" >&2
+    exit 1
+fi
+
+usage() {
+    cat <<'USAGE'
+lvim-gtk select — make an installed theme the active one.
+
+  scripts/select                  list what is installed and ask
+  scripts/select <style>          switch to it directly
+  scripts/select --list           show what is installed, change nothing
+  scripts/select --help           this
+
+Only themes already in ~/.local/share/themes are offered. To add one, use scripts/setup.
+USAGE
+}
+
+list_only=0
+case "${1:-}" in
+    --list)    list_only=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*)        printf 'unknown option: %s\n\n' "$1" >&2; usage >&2; exit 1 ;;
+esac
+
+have=$(installed_themes)
+if [ -z "$have" ]; then
+    bad "no lvim-gtk themes installed"
+    note "build and install one with: scripts/setup"
+    exit 1
+fi
+
+current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'" || true)
+
+if [ "$list_only" -eq 1 ]; then
+    step "Installed"
+    while IFS= read -r t; do
+        if [ "$t" = "$current" ]; then ok "$t   ${dim}(active)${off}"; else printf '    %s\n' "$t"; fi
+    done <<< "$have"
+    exit 0
+fi
+
+choice="${1:-}"
+if [ -z "$choice" ]; then
+    printf '\n'
+    choice=$(printf '%s\n' "$have" | pick "Choose a theme" "$current") || { note "cancelled"; exit 0; }
+fi
+
+name=$(theme_name "$choice")
+if ! printf '%s\n' "$have" | grep -qx "$name"; then
+    bad "not installed: $name"
+    note "install it first with: scripts/setup $choice"
+    exit 1
+fi
+
+step "Switching to $name"
+activate "$name"
+ok "done"
+
+printf '\n'
+post_notes "$name"

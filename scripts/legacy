@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""lvim-gtk legacy — render the toolkits that are not CSS.
+
+GTK2, Metacity and XFWM4 predate the stylesheet, and each speaks its own dialect: an rc file, an
+XML document, a key=value list. None of them can be produced by Sass, and none of them should
+re-derive its colours either — the semantic layer already measured everything against the
+background, lifted it to a contrast threshold and decided what is accent and what is chrome, and a
+second implementation of that in Python would disagree with the first one the day either changes.
+
+So this reads the ANSWERS rather than repeating the question. `scripts/build` has already compiled
+gtk-3.0/gtk.css, whose ~110 `@define-color` lines are exactly those computed values; this parses
+them and substitutes them into the templates under src/templates/. One source of truth, three more
+toolkits.
+
+    scripts/legacy build/Lvim-EverforestDark
+"""
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+TEMPLATES = ROOT / "src/templates"
+
+DEFINE = re.compile(r"@define-color\s+([A-Za-z0-9_]+)\s+(#[0-9a-fA-F]{6}|rgba?\([^)]*\))\s*;")
+
+
+def colors(theme):
+    """The theme's own computed palette, read back out of the css it just produced."""
+    css = (theme / "gtk-3.0/gtk.css").read_text(encoding="utf-8")
+    found = dict(DEFINE.findall(css))
+    if not found:
+        sys.exit(f"no @define-color in {theme}/gtk-3.0/gtk.css — run scripts/build first")
+    return found
+
+
+def render(text, values, where):
+    """Substitute @name@ placeholders. An unknown name is an error, never an empty string.
+
+    Silently leaving a placeholder unresolved is how a theme ships with a black titlebar and nobody
+    notices until it is installed, so a typo fails the build instead."""
+    missing = sorted({m for m in re.findall(r"@([A-Za-z0-9_]+)@", text) if m not in values})
+    if missing:
+        sys.exit(f"{where}: no such colours: {', '.join(missing)}")
+    return re.sub(r"@([A-Za-z0-9_]+)@", lambda m: values[m.group(1)], text)
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit("usage: scripts/legacy build/<Name>")
+    theme = pathlib.Path(sys.argv[1])
+    if not theme.is_dir():
+        sys.exit(f"no such directory: {theme}")
+
+    values = colors(theme)
+    n = 0
+    for src in sorted(TEMPLATES.rglob("*.in")):
+        rel = src.relative_to(TEMPLATES).with_suffix("")      # gtk-2.0/gtkrc.in -> gtk-2.0/gtkrc
+        dest = theme / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(render(src.read_text(encoding="utf-8"), values, str(rel)), encoding="utf-8")
+        n += 1
+
+    # Metacity looks for the theme by format version and falls back down the numbers; the older two
+    # names are symlinks so a v1/v2 host finds the same document.
+    m1 = theme / "metacity-1"
+    if (m1 / "metacity-theme-3.xml").is_file():
+        for old in ("metacity-theme-1.xml", "metacity-theme-2.xml"):
+            link = m1 / old
+            link.unlink(missing_ok=True)
+            link.symlink_to("metacity-theme-3.xml")
+
+    print(f"  legacy: {n} files ({', '.join(sorted({p.parts[0] for p in (s.relative_to(TEMPLATES) for s in TEMPLATES.rglob('*.in'))}))})")
+
+
+main()

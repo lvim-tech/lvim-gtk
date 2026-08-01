@@ -1,0 +1,296 @@
+// lvim-gtk.semantic: the layer between the palette and every rule in the theme.
+//
+// WHY THIS FILE EXISTS AT ALL. A widget rule must never name a colour. The moment a button says
+// `background: $green`, that button is bound to one palette and to one reading of what green means
+// here — and with 48 palettes, half of which are light, "green" stops meaning anything. Rules name
+// a ROLE instead: `$accent`, `$surface`, `$on-surface`. The role is resolved once, in this file,
+// and everything downstream follows.
+//
+// It is also what makes a new palette free. `_palette.scss` is generated from lvim-colorscheme and
+// carries only raw colours; this file decides what they are FOR. Swapping the palette swaps every
+// surface, every border and every state in one step, and no widget file changes.
+//
+// NAMING, and the one rule worth stating: a pair is always `$x` and `$on-x`. `$on-surface` is the
+// colour of text ON `$surface`, not "some other surface". Getting that consistently right is what
+// keeps contrast correct across 48 palettes without checking each one by hand.
+
+@use 'sass:color';
+@use 'sass:math';
+@use 'sass:string';
+@use 'palette' as p;
+
+// ── Emitting a colour ────────────────────────────────────────────────────────
+//
+// Sass prints a colour in its SHORTEST form, which is a keyword whenever one exists. A value that
+// lands exactly on #ffffff — and ensure-contrast() lands there routinely, because it walks toward
+// white until a threshold is met — comes out of interpolation as the bare word `white`, and Sass
+// itself warns that this "will likely produce invalid CSS".
+//
+// It is not merely ugly. `@define-color x white` is a different token from `@define-color x
+// #ffffff`, and the theme's own toolchain proved it: the GTK2/Metacity/XFWM generator reads those
+// lines back out of the compiled css, and 27 of the 48 palettes failed to build the moment it
+// started checking. Every emitted colour goes through here so the form is always the same one.
+
+@function _hex2($n) {
+    $d: '0123456789abcdef';
+    $hi: math.floor(math.div($n, 16)) + 1;
+    $lo: ($n % 16) + 1;
+    @return string.slice($d, $hi, $hi) + string.slice($d, $lo, $lo);
+}
+
+// hex() renders an opaque colour as #rrggbb, always. Translucent ones are returned untouched:
+// rgba() has no keyword form to collapse into, and forcing hex would silently drop the alpha.
+@function hex($c) {
+    @if color.alpha($c) < 1 {
+        @return $c;
+    }
+    @return '#' + _hex2(color.red($c)) + _hex2(color.green($c)) + _hex2(color.blue($c));
+}
+
+// ── Is this a light or a dark palette? ───────────────────────────────────────
+//
+// Decided from the background's luminance rather than from the style's name. Names lie: a palette
+// called "soft" may be light in one family and dark in another, and a user's own palette has no
+// name at all. Luminance is the thing that actually determines which way every derived colour must
+// move, so it is the thing that is measured.
+
+$is-light: color.lightness(p.$bg) > 50% !default;
+
+// lift() moves a colour away from the background by $amount, in whichever direction that is.
+@function lift($c, $amount) {
+    @return if(
+        $is-light,
+        color.adjust($c, $lightness: -$amount),
+        color.adjust($c, $lightness: $amount)
+    );
+}
+
+// sink() moves a colour toward the background — recessed surfaces, wells, shadows.
+@function sink($c, $amount) {
+    @return lift($c, -$amount);
+}
+
+// mix() blends two colours; a thin wrapper so widget files never import sass:color themselves.
+@function mix($a, $b, $weight: 50%) {
+    @return color.mix($a, $b, $weight);
+}
+
+// alpha() sets transparency on a colour.
+@function alpha($c, $a) {
+    @return rgba($c, $a);
+}
+
+// ── Contrast, measured ───────────────────────────────────────────────────────
+//
+// The palettes come from an editor, where low contrast is a feature: you stare at code for hours
+// and a soft foreground is kinder. A desktop is read in glances, and the same values measure 2.3:1
+// against their own background — below any usable threshold. Taking the palette one-to-one is
+// therefore wrong, and nudging it "a bit lighter" by eye is wrong on the next palette.
+//
+// So it is measured. WCAG relative luminance, implemented here because Sass has no notion of it,
+// and a colour is walked away from its background one step at a time until it clears the threshold.
+// The hue never moves — only lightness — so a palette keeps its character while becoming legible.
+
+@function _lin($c) {
+    $c: math.div($c, 255);
+    @return if($c <= 0.03928, math.div($c, 12.92), math.pow(math.div($c + 0.055, 1.055), 2.4));
+}
+
+// luminance() is WCAG relative luminance: 0 for black, 1 for white.
+@function luminance($color) {
+    @return 0.2126 * _lin(color.red($color))
+          + 0.7152 * _lin(color.green($color))
+          + 0.0722 * _lin(color.blue($color));
+}
+
+// contrast() is the WCAG ratio between two colours, 1:1 to 21:1.
+@function contrast($a, $b) {
+    $la: luminance($a);
+    $lb: luminance($b);
+    $hi: math.max($la, $lb);
+    $lo: math.min($la, $lb);
+    @return math.div($hi + 0.05, $lo + 0.05);
+}
+
+// ensure-contrast() walks $fg away from $bg until the ratio clears $target.
+//
+// Direction is decided from the background, not from the global palette flag, because this is also
+// used for text on an accent — where the "background" is the accent, not the window. Stepping 2% at
+// a time keeps the result close to the original; the cap exists so a pathological pair (a mid-grey
+// on a mid-grey) terminates instead of looping to white.
+@function ensure-contrast($fg, $bg, $target: 4.5, $step: 2%, $limit: 40) {
+    $out: $fg;
+    $up: luminance($bg) < 0.18;
+    $i: 0;
+    @while contrast($out, $bg) < $target and $i < $limit {
+        $out: if($up, color.adjust($out, $lightness: $step), color.adjust($out, $lightness: -$step));
+        $i: $i + 1;
+    }
+    @return $out;
+}
+
+// on() picks the readable foreground for a background, by contrast rather than by guess.
+//
+// This is the function that keeps 48 palettes legible without inspecting them. A hand-picked
+// foreground works until a palette arrives whose accent is pale — then white-on-yellow appears and
+// nobody notices until a user reports it.
+//
+// It PICKS by contrast and then GUARANTEES it. The pick alone is not enough, and everforest_dark is
+// the proof: its `$fg-light` is #646c62, a dark grey-green, and its `$bg-dark` is #1a1f21 — on an
+// accent of #4c83a0 the better of the two still measures 1.6:1, which is text you cannot read. An
+// editor palette has no obligation to contain a colour that works on its own accent, so the winner
+// is walked away from the background until it clears the body-text threshold.
+//
+// The side is decided by the BACKGROUND's own luminance, never by the palette's. A dark palette
+// still contains pale fills — a yellow warning, a light accent — and text on those must be dark
+// even though everything else in the theme is light. 0.18 is the mid-point of the luminance scale,
+// so the question being asked is simply "is this fill light or dark", per fill.
+@function on($bg, $light: p.$fg-light, $dark: p.$bg-dark) {
+    @return if(
+        luminance($bg) > 0.18,
+        ensure-contrast($dark, $bg, 4.5),
+        ensure-contrast($light, $bg, 4.5)
+    );
+}
+
+// ── Surfaces ─────────────────────────────────────────────────────────────────
+//
+// Five depths, and no more. GTK asks for: the window, the content view inside it, raised things
+// (cards, popovers), sunken things (wells, entries) and the chrome (headerbar, sidebar). Anything
+// finer is invented depth that no widget actually needs, and every extra level is another value to
+// keep in step across 48 palettes.
+
+$surface:           p.$bg !default;              // the window itself
+$surface-view:      p.$bg-soft-dark !default;    // lists, text views, content
+$surface-raised:    p.$bg-light !default;        // cards, popovers, menus, tooltips
+$surface-sunken:    p.$bg-dark !default;         // wells, entries, scrollbar troughs
+$surface-header:    p.$bg-dark !default;         // headerbars, toolbars
+$surface-sidebar:   p.$bg-soft-dark !default;    // sidebars, navigation panes
+
+// Backdrop — an unfocused window. GTK renders it constantly and it is the easiest thing to forget:
+// without it, an inactive window looks identical to the active one and the desktop reads as flat.
+$surface-backdrop:  sink($surface, 2%) !default;
+
+// ── Foregrounds ──────────────────────────────────────────────────────────────
+
+// Thresholds follow WCAG: 4.5 for body text, 3.0 for large text and interface elements. Secondary
+// text is deliberately held one step lower than primary — it must be readable, but it must also
+// still read as secondary, and lifting both to the same ratio flattens the hierarchy.
+$on-surface:        ensure-contrast(p.$fg-light, $surface, 7.0) !default;
+$on-surface-dim:    ensure-contrast(p.$fg, $surface, 4.5) !default;
+$on-surface-mute:   ensure-contrast(p.$comment, $surface, 3.0) !default;
+
+// ── Accent and state ─────────────────────────────────────────────────────────
+//
+// `$accent` is the colour the user's palette says is primary; `$on-accent` is computed, never
+// chosen, for the reason described at on().
+//
+// WHICH palette colour is primary is a real decision, and getting it wrong is invisible in the code
+// and glaring on screen. This started as `$blue`, which is how a green palette ended up with a
+// steel-blue selection that read as stock Adwaita — the accent said nothing about which theme you
+// were looking at.
+//
+// The answer is not invented here: lvim-colorscheme already has an accent slot. `TabLineSel` — the
+// SELECTED tab, the editor's own "this is the chosen one" — is `green_dark`, and so is `Title`, on
+// every style. Sourcing from the same key makes the desktop's selection agree with the editor's,
+// and because each palette carries its own `green_dark`, all 48 keep their own identity rather than
+// converging on one hue.
+//
+// Named separately from `$accent` so the choice can be changed without touching the derivation:
+//
+//     @use 'semantic' with ($accent-source: p.$teal);
+
+$accent-source:     p.$green-dark !default;
+
+// TWO requirements, and satisfying only the first is what put unreadable labels on selected files.
+//
+// The first is obvious: the accent must be distinguishable from the window, or a suggested button
+// disappears into the dialog behind it. That is the 3.5 below, and on its own it lifted everforest's
+// `green_dark` to #80843e.
+//
+// The second is the one that bites. A filled accent CARRIES TEXT — the label of a selected icon, the
+// text of a suggested button — and #80843e has no room for any: the palette's own foreground reads
+// 1.4:1 on it, pure black manages 4.7:1 and pure white only 4.0:1. Both look wrong on screen because
+// both are wrong; a mid-tone fill cannot carry small text in either direction. The answer is not a
+// cleverer text colour, it is a fill with headroom.
+//
+// So the accent is then walked AWAY from the side its text will come from — toward black on a dark
+// palette so near-white text has room, toward white on a light one — until that text clears the
+// body threshold. It costs a little saturation and buys a selection you can actually read.
+$accent: ensure-contrast(
+             ensure-contrast($accent-source, $surface, 3.5),
+             if($is-light, #000, #fff),
+             4.5
+         ) !default;
+$accent-hover:      lift($accent, 6%) !default;
+$accent-active:     sink($accent, 6%) !default;
+$on-accent:         on($accent) !default;
+
+$success:           ensure-contrast(p.$green, $surface, 3.5) !default;
+$warning:           ensure-contrast(p.$yellow, $surface, 3.5) !default;
+$error:             ensure-contrast(p.$red, $surface, 3.5) !default;
+$destructive:       ensure-contrast(p.$red, $surface, 3.5) !default;
+$on-success:        on($success) !default;
+$on-warning:        on($warning) !default;
+$on-error:          on($error) !default;
+$on-destructive:    on($destructive) !default;
+
+// ── Lines and shadow ─────────────────────────────────────────────────────────
+//
+// Borders are derived from the surface rather than named in the palette, because a border must sit
+// a fixed distance from whatever is behind it. A fixed border colour looks right on the palette it
+// was picked for and vanishes or screams on the next one.
+
+$border:            lift($surface, 8%) !default;
+$border-strong:     lift($surface, 16%) !default;
+$border-focus:      $accent !default;
+
+// Shadows are always black at low alpha, in both directions. A "light" shadow made by lightening
+// reads as a glow, and GTK uses shadow to say "this is above that" — a glow says nothing.
+$shadow:            alpha(#000, 0.28) !default;
+$shadow-strong:     alpha(#000, 0.44) !default;
+
+// ── Interaction states ───────────────────────────────────────────────────────
+//
+// Kept as translucent overlays rather than solid colours, so the same value works on every surface
+// it may land on: a hover on a card, on a list row and on a headerbar are one definition here.
+
+$state-hover:       alpha($on-surface, 0.08) !default;
+$state-active:      alpha($on-surface, 0.14) !default;
+$state-selected:    alpha($accent, 0.20) !default;
+$state-disabled:    0.45 !default;               // opacity, not a colour
+
+// ── Scrollbars ───────────────────────────────────────────────────────────────
+//
+// Translucent, and never the accent. A scrollbar is the one control that is on screen constantly
+// while saying nothing: it reports where you are, it is not a thing you chose. Painted as a solid
+// bar it competes with the content for attention all day — measured on this theme's own output, a
+// solid `$on-surface-mute` thumb on a solid sunken trough was the brightest thing in a file
+// manager's sidebar.
+//
+// So it is an overlay on whatever is behind it, at three strengths: present, pointed at, dragged.
+// libadwaita reaches the same three by mixing currentColor at 20/40/60%, which is why GTK4 needed
+// no rule at all and GTK3 now matches it instead of arguing with it.
+// The knob of a scale, and it must not be the accent. A slider is a filled track plus a HANDLE, and
+// when the handle is the same colour as the fill there is no handle — there is a bar. Nemo puts its
+// zoom scale immediately after the words "Free space: 10.0 GB" in the status bar, and an accent bar
+// in that position reads as a disk gauge, which is how it was reported. libadwaita draws the knob at
+// 80% white over the view surface for the same reason.
+$slider-knob:             mix($on-surface, $surface-view, 80%) !default;
+
+// The groove a scale or a progress bar is drawn in. An OVERLAY, not a named surface, for the reason
+// the scrollbar's is: `$surface-sunken` is chosen to sit under a window, and a status bar is not a
+// window. Measured on everforest_soft, the zoom scale's trough came out #202527 on a #292F33 status
+// bar — nine steps per channel, which is a groove you cannot see. A wash of the foreground is a
+// fixed distance from whatever is behind it instead, on every surface and every palette.
+$track-trough:            alpha($on-surface, 0.15) !default;
+
+$scrollbar-slider:        alpha($on-surface, 0.20) !default;
+$scrollbar-slider-hover:  alpha($on-surface, 0.40) !default;
+$scrollbar-slider-active: alpha($on-surface, 0.60) !default;
+$scrollbar-trough:        alpha($on-surface, 0.06) !default;
+
+// ── Selection ────────────────────────────────────────────────────────────────
+
+$selection-bg:      $accent !default;
+$selection-fg:      $on-accent !default;

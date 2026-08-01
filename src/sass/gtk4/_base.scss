@@ -1,0 +1,363 @@
+// lvim-gtk.gtk4.base: the GTK4 half — and it is a different KIND of file from the GTK3 one.
+//
+// WHY IT IS NOT A COPY OF gtk3/_base.scss. The GTK3 file exists because GTK3 paints nothing it is
+// not told to paint: ship colours alone and every window is transparent. libadwaita is the opposite.
+// It is a complete stylesheet that already draws every widget, and — measured, not assumed — it
+// bridges the legacy names into its own custom properties itself:
+//
+//     :root { --accent-bg-color: @accent_bg_color; --window-bg-color: @window_bg_color; … }
+//
+// (libadwaita 1.9 gtk.css, line 100). So the 110 `@define-color` names emitted by libadwaita/_colors
+// already reach every libadwaita widget. Verified through `Gtk.Widget.get_color()`:
+// `var(--accent-bg-color)` resolves to our accent, not to Adwaita blue.
+//
+// COLOUR IS THEREFORE DONE, AND SHAPE IS WHAT IS LEFT. libadwaita's corners are its own — 9px on
+// controls, 12px on cards, 15px on the window, pills on tracks — and they are hardcoded per
+// selector; apart from `--window-radius` there is no knob. That is the entire reason Nautilus and
+// Nemo still looked like different themes: same palette, different geometry.
+//
+// HOW IT WINS WITHOUT !important. This file compiles into the theme's gtk-4.0/gtk.css, which the
+// installer copies to ~/.config/gtk-4.0/gtk.css — the only GTK4 input libadwaita respects. GTK4
+// loads that at GTK_STYLE_PROVIDER_PRIORITY_USER (800), above libadwaita's own sheet, and provider
+// priority beats specificity outright. Plain rules are enough, and anything stronger would be a
+// kludge hiding a misunderstanding.
+//
+// ORGANISED BY ROLE, not by widget, and the roles are the SAME knobs the GTK3 half uses. One
+// _config.scss drives both toolkits — which is the only way "the corners are square" can be true of
+// a desktop rather than of one application.
+
+@use '../semantic' as s;
+@use '../config' as c;
+
+@mixin emit {
+    /* ── the window ────────────────────────────────────────────────────────── */
+    /* libadwaita reads this variable for window.csd, so the one corner it does expose is set the
+       supported way rather than by re-stating its selector. */
+    :root {
+        --window-radius: #{c.$radius-window};
+    }
+
+    /* Dialogs, sheets and the alert windows carry their own hardcoded corners. */
+    window.messagedialog.csd:not(.solid-csd),
+    window.dialog-window.alert.csd:not(.solid-csd),
+    window.dialog.message.csd:not(.solid-csd),
+    dialog-host > dialog.alert sheet,
+    floating-sheet > sheet {
+        border-radius: c.$radius-large;
+    }
+
+    /* An app notification hangs from the top edge: only its bottom corners are ever visible. */
+    .app-notification {
+        border-radius: 0 0 c.$radius-large c.$radius-large;
+    }
+
+    /* ── raised surfaces: cards, frames, popovers ──────────────────────────── */
+    frame,
+    .card,
+    list.boxed-list,
+    list.content,
+    list.boxed-list-separate > row,
+    popover > contents,
+    colorchooser .popover.osd,
+    .toolbar.osd,
+    menubutton.card > button,
+    filechooser gridview > child,
+    tabthumbnail,
+    tabthumbnail .card picture,
+    toast {
+        border-radius: c.$radius-large;
+    }
+
+    /* The button row of a message dialog is part of the dialog's own surface. */
+    window.messagedialog .response-area > button,
+    dialog.alert .response-area > button,
+    window.dialog.message.csd .dialog-action-area > button {
+        border-radius: c.$radius-large;
+    }
+
+    /* ── controls ──────────────────────────────────────────────────────────── */
+    /* Everything a hand touches and everything that lists a row. libadwaita gives this family 9px
+       through a single chain ending in `button`, plus a rule each for the rest. */
+    button,
+    splitbutton,
+    splitbutton > button,
+    splitbutton > menubutton > button,
+    menubutton.suggested-action,
+    menubutton.opaque,
+    checkbutton,
+    entry,
+    spinbutton,
+    entry > text,
+    popover.menu modelbutton,
+    popover.menu list > row,
+    popover.menu listview > row,
+    menubar > item,
+    .navigation-sidebar > row,
+    .navigation-sidebar > child,
+    .navigation-sidebar > flowboxchild,
+    tabbar tab,
+    dnd tab,
+    tabbar tabbox > tabboxchild,
+    tooltip,
+    flowbox > flowboxchild,
+    gridview > child,
+    columnview > listview > row,
+    listview > row,
+    calendar > grid > label.day-number:checked,
+    calendar > grid > label.day-number:selected,
+    popover.emoji-picker emoji,
+    emoji-completion-row,
+    toggle-group,
+    toggle-group > toggle,
+    toggle-group.round,
+    toggle-group.round toggle {
+        border-radius: c.$radius;
+    }
+
+    /* Selection. GTK4 draws it on the same nodes GTK3 does, and it must take the ACCENT-FILLED
+       corner rather than the control one — the rule the GTK3 half learned the hard way. */
+    .view:selected,
+    .view:selected:focus,
+    textview > text:selected,
+    listview > row:selected,
+    columnview > listview > row:selected,
+    gridview > child:selected,
+    flowbox > flowboxchild:selected,
+    .navigation-sidebar > row:selected,
+    popover.menu modelbutton:hover,
+    popover.menu list > row:hover,
+    button.suggested-action,
+    button.destructive-action,
+    button:checked,
+    button.opaque {
+        border-radius: c.$radius-active;
+    }
+
+    /* Small chrome: keycaps, expander titles, the tick box. */
+    check,
+    shortcut,
+    shortcut > .keycap,
+    shortcut-label,
+    shortcut-label .keycap,
+    expander-widget > box > title {
+        border-radius: c.$radius-small;
+    }
+
+    /* ── tracks, sliders and pills ─────────────────────────────────────────── */
+    /* Anything libadwaita renders as a capsule: scrollbars, scales, progress, level bars, switches,
+       and the deliberately pill-shaped buttons. */
+    scrollbar > range > trough,
+    scrollbar > range > trough > slider,
+    scale > trough,
+    scale > trough > fill,
+    scale > trough > highlight,
+    scale > trough > slider,
+    scale.color > trough,
+    progressbar > trough,
+    progressbar > trough > progress,
+    levelbar trough > block,
+    levelbar trough > block.empty,
+    levelbar trough > block.full,
+    switch,
+    switch > slider,
+    button.pill,
+    menubutton.pill > button,
+    button.circular,
+    button.sidebar-button,
+    windowcontrols > button > image,
+    checkbutton.grouped,
+    checkbutton.selection-mode,
+    checkbutton.selection-mode check,
+    checkbutton.selection-mode radio,
+    indicatorbin > indicator,
+    indicatorbin > mask,
+    bottom-sheet > sheet > stack > widget > drag-handle {
+        border-radius: c.$radius-track;
+    }
+
+    /* ── the two shapes that stay round, and why ───────────────────────────── */
+    //
+    // These are not corners the theme rounded — they are shapes that MEAN something by being round,
+    // and squaring them removes the meaning rather than restyling it. A radio next to a checkbox is
+    // the same size, in the same place, with the same tick: round versus square is the only thing
+    // saying "exactly one of these" instead of "any number of these". An avatar is round because it
+    // is a portrait. Both are knobs, so the choice stays available.
+
+    radio {
+        border-radius: c.$radius-radio;
+    }
+
+    avatar {
+        border-radius: c.$radius-avatar;
+    }
+
+    /* ── selection: solid, the way the GTK3 half draws it ──────────────────── */
+    //
+    // MEASURED, because "the accent is not reaching GTK4" turned out to be false three times over.
+    // The accent does reach it; libadwaita simply spends it differently:
+    //
+    //   row:selected, gridview > child:selected {
+    //       background-color: color-mix(in srgb, var(--accent-bg-color) 25%, transparent);
+    //   }
+    //
+    // A quarter of the accent over the view background. On everforest_dark that computes to #34382B
+    // — a dim olive that reads as "slightly warmer grey", next to Nemo's solid #727638 for the same
+    // selected file. Same palette, same colour name, two different pictures.
+    //
+    // Neither is wrong on its own; what is wrong is a desktop where selecting a file looks like one
+    // thing in one file manager and another thing in the next. The GTK3 half fills solid, so this
+    // does too, and the foreground goes with it — 25% of an accent needs no special text colour, a
+    // solid one does.
+
+    /* A LIST row fills solid: its icon is small and sits beside the text, so the fill lands on the
+       row, not on the picture. This is also exactly what the GTK3 half does. */
+    listview > row:selected,
+    columnview > listview > row:selected,
+    .view:selected,
+    .view:selected:focus {
+        background-color: s.$selection-bg;
+        color: s.$selection-fg;
+    }
+
+    /* A GRID cell marks its NAME, not its tile — and this is the one place the two toolkits are
+       reconciled in GTK4's direction rather than GTK3's, because only one of them has a choice.
+       Nemo's icon view is a canvas: its single gtk_render_background() is handed `text_rect`, a
+       rectangle computed in C from the text extents (nemo-icon-canvas-item.c:1068-1094), and the
+       icon beside it is painted with gtk_render_icon_surface(), which has no background node at
+       all. No stylesheet can widen that rectangle. Faking it with an offset box-shadow would pin
+       the theme to one icon size, bleed into neighbouring cells and break at every zoom level —
+       so GTK4 does the thing GTK3 is able to do instead: the wash goes behind the name, the icon
+       is left alone, and selecting a file looks the same in both file managers. */
+    gridview > child:selected,
+    flowbox > flowboxchild:selected {
+        background-color: transparent;
+        color: s.$on-surface;
+    }
+
+    /* `padding: 0` is not tidiness, it is a measurement. The wash is wider than the word it marks,
+       and the padding is not why: removing 8px a side left the box at exactly the same 84px. The
+       width is the LABEL'S ALLOCATION — Nautilus hands the name a fixed width and centres the text
+       inside it, and GTK paints a background over a widget's allocation, so padding only shrinks
+       the text area within a box whose size was already decided. No stylesheet can make it hug the
+       glyphs; that is the mirror image of Nemo's fixed text_rect, which hugs and cannot be widened. */
+    gridview > child:selected label,
+    flowbox > flowboxchild:selected label {
+        background-color: s.alpha(s.$selection-bg, c.$selection-cell-alpha);
+        border-radius: c.$selection-label-radius;
+        padding: 0;
+    }
+
+    /* Hover marks the name too, not the tile — same shape as selection, weaker, so pointing at a
+       file never looks like having chosen it. libadwaita washes the whole cell on hover, which put
+       the pointer feedback in a different place from the selection it precedes. */
+    gridview > child.activatable:hover,
+    flowbox > flowboxchild:hover {
+        background-color: transparent;
+    }
+
+    gridview > child.activatable:hover label,
+    flowbox > flowboxchild:hover label {
+        background-color: s.alpha(s.$selection-bg, c.$hover-label-alpha);
+        border-radius: c.$selection-label-radius;
+        padding: 0;
+    }
+
+    gridview > child.activatable:selected:hover label {
+        background-color: s.alpha(s.$selection-bg, c.$selection-cell-alpha);
+    }
+
+    /* The sidebar is libadwaita's other deliberate neutral: `.navigation-sidebar row:selected` is
+       `color-mix(currentColor 10%)`, with no accent in it at all — which is why the selected place
+       in Nautilus measured #2E3335 while the same row in Nemo was solid green. */
+    .navigation-sidebar > row:selected,
+    .navigation-sidebar > child:selected,
+    .navigation-sidebar > flowboxchild:selected {
+        background-color: s.$selection-bg;
+        color: s.$selection-fg;
+    }
+
+    .navigation-sidebar > row:selected:hover,
+    .navigation-sidebar > row:selected:active {
+        background-color: s.lift(s.$selection-bg, 5%);
+        color: s.$selection-fg;
+    }
+
+    /* Menus. The GTK3 half fills the hovered row with the accent and leaves the check/radio as a
+       bare glyph in the row's own colour — one indicator per row, and the glyph inverts with it.
+       libadwaita instead highlights neutrally and draws the glyph monochrome always, so a menu that
+       matched everywhere else did not match here. Same rule as GTK3, applied to GTK4's nodes. */
+    popover.menu modelbutton:hover,
+    popover.menu listview > row:hover,
+    popover.menu list > row:hover {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    /* ── GNOME applications that neutralise the accent ─────────────────────── */
+    //
+    // Nautilus ships its own stylesheet (/org/gnome/nautilus/style.css) which does:
+    //
+    //     .nautilus-list-view listview, .nautilus-grid-view gridview,
+    //     .nautilus-network-view listview { --accent-bg-color: #959595; }
+    //
+    // Deliberate: a grey selection does not tint file thumbnails. It is also the reason Nautilus
+    // showed none of the theme's colour exactly where Nemo showed it everywhere, and why the
+    // selection checkboxes in those views came out grey — they inherit that value.
+    //
+    // WHY RE-STATING IT WORKS, and why it is not a fight with the application. A custom property
+    // declared ON an element beats one inherited from :root no matter which provider it came from,
+    // which is why our `@define-color` bridge cannot reach into that subtree. Declare it on the
+    // SAME element, though, and the two are ordinary competing declarations — at which point
+    // provider priority decides, and ours is loaded from ~/.config/gtk-4.0/gtk.css at USER (800)
+    // against the application's APPLICATION (600). No !important, no deeper selector, no override
+    // of anything else the application asked for.
+    @if c.$app-accent-override {
+        .nautilus-list-view listview,
+        .nautilus-grid-view gridview,
+        .nautilus-network-view listview {
+            --accent-bg-color: #{s.$accent};
+            --accent-fg-color: #{s.$on-accent};
+            --accent-color: #{s.lift(s.$accent, 14%)};
+        }
+    }
+
+    /* ── window controls ───────────────────────────────────────────────────── */
+    //
+    // Supplied by the theme, not by the icon theme — see window-close-symbolic.svg for the failure
+    // that prompted it: YAMIS defines no window controls and inherits them from breeze-dark, so a
+    // GNOME application drew KDE's chevrons and a diamond where a square belonged.
+    //
+    // `window.maximized` is what tells maximise from restore. GtkWindowControls swaps the icon by
+    // NAME rather than by class, so there is no `.restore` selector to hang the second glyph on —
+    // but the window itself carries the state, and that is enough to select on.
+
+    windowcontrols > button.close > image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-close-symbolic.svg"));
+    }
+
+    windowcontrols > button.minimize > image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-minimize-symbolic.svg"));
+    }
+
+    windowcontrols > button.maximize > image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-maximize-symbolic.svg"));
+    }
+
+    window.maximized windowcontrols > button.maximize > image {
+        -gtk-icon-source: -gtk-recolor(url("lvim-assets/window-restore-symbolic.svg"));
+    }
+
+    /* ── sizes shared with the GTK3 half ───────────────────────────────────── */
+    /* libadwaita already lands within a pixel of these (entry 34px, headerbar 47px), so wiring them
+       to the same knobs changes almost nothing today — and keeps the two toolkits from drifting the
+       moment somebody edits the config. */
+    headerbar {
+        min-height: c.$header-height;
+    }
+
+    entry,
+    spinbutton,
+    button {
+        min-height: c.$control-height;
+    }
+}

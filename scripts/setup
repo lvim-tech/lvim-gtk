@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+# lvim-gtk setup — from nothing to an installed theme, one step at a time.
+#
+# The other scripts each do one thing and assume you know which to run when. This one walks the
+# whole path: what is missing, where the colours come from, which style, build, install — and then
+# says what is LEFT TO DO BY HAND, because not everything is selected by gtk-theme-name.
+#
+#   scripts/setup                  # with questions
+#   scripts/setup everforest_dark  # straight through
+#   scripts/setup --all            # build every style, install none
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=scripts/_common.sh
+. scripts/_common.sh
+
+# ── 0. the argument, before anything is done ─────────────────────────────────
+#
+# Checked FIRST, and not where it is used. A mistyped flag looks exactly like a style name, and
+# with the check further down the script would refresh forty-eight palettes and only then say it
+# did not recognise the word — work done for a run that was never going to finish.
+
+usage() {
+    cat <<'USAGE'
+lvim-gtk setup — build and install a theme.
+
+  scripts/setup                  walk through it with questions
+  scripts/setup <style>          straight through, no questions
+  scripts/setup --all            build every style, install none
+  scripts/setup --help           this
+
+<style> is a palette name such as everforest_dark; run with no argument to see the list.
+USAGE
+}
+
+all=0
+case "${1:-}" in
+    --all)          all=1; shift ;;
+    -h|--help)      usage; exit 0 ;;
+    -*)             printf 'unknown option: %s\n\n' "$1" >&2; usage >&2; exit 1 ;;
+esac
+
+# ── 1. is there already something installed? ─────────────────────────────────
+#
+# Asked before the tools are checked, because if the answer is "just switch" then sass, python3 and
+# nvim are all irrelevant — nothing is going to be built. Demanding a toolchain from someone who
+# only wants a different colour today is the kind of thing that makes a script feel hostile.
+
+if [ "$all" -eq 0 ] && [ -z "${1:-}" ]; then
+    already=$(installed_themes)
+    if [ -n "$already" ]; then
+        step "Already installed"
+        current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "\'" || true)
+        while IFS= read -r th; do
+            if [ "$th" = "$current" ]; then ok "$th   ${dim}(active)${off}"; else printf '    %s\n' "$th"; fi
+        done <<< "$already"
+        printf '\n'
+        if [ "$(ask 'Rebuild and reinstall? (y/n)' n)" != "y" ]; then
+            exec ./scripts/select
+        fi
+    fi
+fi
+
+# ── 2. what has to be present ────────────────────────────────────────────────
+step "Checking the tools"
+
+missing=0
+for t in sass python3; do
+    if command -v "$t" >/dev/null; then ok "$t"; else bad "$t — required"; missing=1; fi
+done
+
+# nvim is only needed to regenerate the palettes: a third of lvim-colorscheme's styles are
+# FUNCTIONS rather than tables, and only Neovim can evaluate them.
+if command -v nvim >/dev/null; then ok "nvim"; else
+    if [ -z "$(find palettes -maxdepth 1 -name "*.scss" 2>/dev/null)" ]; then
+        bad "nvim — required, because palettes/ is empty"
+        missing=1
+    else
+        warn "no nvim — the palettes cannot be refreshed, but the ones present will do"
+    fi
+fi
+
+if [ "$missing" -eq 1 ]; then
+    printf '\n%sA required tool is missing. Install it and run this again.%s\n' "$red" "$off"
+    exit 1
+fi
+
+# ── 3. the colours ───────────────────────────────────────────────────────────
+step "Colours"
+
+have=$(find palettes -maxdepth 1 -name "*.scss" 2>/dev/null | wc -l)
+if [ "$have" -gt 0 ]; then
+    ok "$have palettes already present"
+    if command -v nvim >/dev/null; then
+        if [ "$(ask 'Refresh them from lvim-colorscheme? (y/n)' n)" = "y" ]; then
+            ./scripts/palettes
+        fi
+    fi
+else
+    note "no palettes yet — extracting them from lvim-colorscheme"
+    ./scripts/palettes
+fi
+
+styles=$(find palettes -maxdepth 1 -name "*.scss" -printf "%f\n" | sed "s/\.scss$//" | sort)
+count=$(printf '%s\n' "$styles" | wc -l)
+
+# ── 4. which style ───────────────────────────────────────────────────────────
+# `all` is offered at the prompt as well as on the command line. Someone who is already looking at
+# the list of forty-eight is exactly the person who might want all of them, and making them quit
+# and re-run with a flag they have not read about yet is a poor answer to that.
+
+step "Style"
+
+style="${1:-}"
+if [ "$all" -eq 0 ] && [ -z "$style" ]; then
+    printf '%s\n' "$styles" | pr -4 -t -w 100 2>/dev/null || printf '%s\n' "$styles"
+    printf '\n'
+    style=$(ask "Which style? ($count available, or 'all')" "everforest_dark")
+fi
+
+if [ "$style" = "all" ]; then all=1; fi
+
+# ── 5. all of them: build and stop, because there is nothing to install ──────
+if [ "$all" -eq 1 ]; then
+    step "Building all $count styles"
+    n=0
+    for s in $styles; do
+        printf '  %s… ' "$s"
+        ./scripts/build "$s" >/dev/null && { n=$((n + 1)); printf '%s✓%s\n' "$green" "$off"; } \
+            || printf '%s✗%s\n' "$red" "$off"
+    done
+    printf '\n'
+    ok "$n built, in build/"
+
+    # Building all of them and stopping is a dead end: nothing is installed, and the person who
+    # just watched forty-eight go by is exactly the one about to ask which command picks one.
+    #
+    # `all` is offered here too, and it means INSTALL all — not activate all, which cannot be done:
+    # activation writes one gtk-theme-name and copies one GTK4 stylesheet, so the last would simply
+    # win. Installing all of them fills the list a switcher chooses from, which is the point.
+    printf '\n'
+    chosen=$(ask "Install one now? (style name, 'all', or 'none')" "none")
+
+    case "$chosen" in
+        none|"")
+            note "install later with: scripts/install <style>   e.g. scripts/install everforest_soft"
+            note "or all of them with: scripts/install --all"
+            exit 0
+            ;;
+        all)
+            step "Installing all $count"
+            ./scripts/install --all
+            printf '\n'
+            current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'" || true)
+            name=$(installed_themes | pick "Which one active?" "$current") || {
+                note "switch whenever you like with: lvim-gtk-select"
+                exit 0
+            }
+            step "Switching to $name"
+            activate "$name" || exit 1
+            ok "done"
+            ;;
+        *)
+            if [ ! -f "palettes/$chosen.scss" ]; then
+                bad "no such style: $chosen"
+                note "install later with: scripts/install <style>"
+                exit 1
+            fi
+            style="$chosen"
+            name="$(theme_name "$style")"
+            step "Installing"
+            ./scripts/install "$name"
+            ;;
+    esac
+    done_installing=1
+fi
+
+if [ "${done_installing:-0}" -eq 0 ] && [ ! -f "palettes/$style.scss" ]; then
+    bad "no such style: $style"
+    printf '\n'
+    printf '%s\n' "$styles" | pr -4 -t -w 100 2>/dev/null || printf '%s\n' "$styles"
+    exit 1
+fi
+# Sections 5 and 6 are skipped when --all already built and installed one; the closing advice is
+# the same either way, so it lives outside both paths rather than being written twice.
+if [ "${done_installing:-0}" -eq 0 ]; then
+    ok "$style"
+
+    name="$(theme_name "$style")"
+
+    # ── 6. build ─────────────────────────────────────────────────────────────
+    step "Building"
+    ./scripts/build "$style"
+
+    # ── 7. install ───────────────────────────────────────────────────────────
+    step "Installing"
+    if [ "$(ask "Install $name? (y/n)" y)" != "y" ]; then
+        note "built in build/$name — install later with: scripts/install $name"
+        exit 0
+    fi
+    ./scripts/install "$name"
+fi
+
+# ── 8. what is left to do by hand ────────────────────────────────────────────
+step "Done — but not everything is selected by gtk-theme-name"
+
+post_notes "$name"

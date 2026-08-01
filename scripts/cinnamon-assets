@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""lvim-gtk cinnamon-assets — the pictures Cinnamon's stylesheet asks for by name.
+
+Cinnamon's theme does not draw a checkbox, a radio or a switch: it points `background-image` at
+checkbox.svg, radio.svg, toggle-on.svg and eleven more, and St has no way to draw a tick without
+one. So a Cinnamon theme owes those files, in its own colours — 48 palettes, 48 sets, hence a
+generator rather than a folder.
+
+SVG here, XPM for XFWM4, and the difference is not inconsistency: XFWM4's images land on a titlebar
+whose colour is known, so they can be flat and opaque, while these sit on menus, panels and dialogs
+of several different surfaces and need real transparency. Cinnamon's own theme is SVG, so librsvg
+is a given wherever this file is read.
+
+Colours come from the compiled css and radii from _config.scss, for the reason given in
+scripts/legacy: the semantic layer answers the question once.
+
+    scripts/cinnamon-assets build/Lvim-EverforestDark
+"""
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+
+def read_colors(theme):
+    css = (theme / "gtk-3.0/gtk.css").read_text(encoding="utf-8")
+    out = dict(re.findall(r"@define-color\s+([A-Za-z0-9_]+)\s+(#[0-9a-fA-F]{6})\s*;", css))
+    if not out:
+        sys.exit(f"no @define-color in {theme} — run scripts/build first")
+    return out
+
+
+def read_config():
+    txt = (ROOT / "src/sass/_config.scss").read_text(encoding="utf-8")
+    out = {}
+    for key, val in re.findall(r"^\$([a-z0-9-]+):\s*(\d+)(?:px)?\s*!default;", txt, re.MULTILINE):
+        out[key] = int(val)
+    return out
+
+
+def svg(w, h, body):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
+            f'viewBox="0 0 {w} {h}">\n{body}\n</svg>\n')
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit("usage: scripts/cinnamon-assets build/<Name>")
+    theme = pathlib.Path(sys.argv[1])
+    c, cfg = read_colors(theme), read_config()
+    out = theme / "cinnamon"
+    out.mkdir(parents=True, exist_ok=True)
+
+    accent, on_accent = c["accent_bg_color"], c["accent_fg_color"]
+    sunken, border = c["view_bg_color"], c["borders"]
+    fg, dim = c["window_fg_color"], c["insensitive_fg_color"]
+
+    # The radii are the theme's own: a square theme gets a square checkbox and a square switch,
+    # while the radio stays round because that is what distinguishes it from the checkbox.
+    r_small = cfg.get("radius-small", 0)
+    r_track = cfg.get("radius-track", 0)
+    r_radio = min(cfg.get("radius-radio", 9999), 10)
+
+    files = {}
+
+    # ── checkbox 20×20 ───────────────────────────────────────────────────────
+    tick = ('<path d="M5.4 9.5 L4 10.9 L8.3 15.2 L16 7.5 L14.6 6.1 L8.3 12.4 Z" '
+            f'fill="{on_accent}"/>')
+    files["checkbox.svg"] = svg(20, 20,
+        f'<rect x="1" y="1" width="18" height="18" rx="{r_small}" fill="{accent}"/>\n{tick}')
+    files["checkbox-off.svg"] = svg(20, 20,
+        f'<rect x="1.5" y="1.5" width="17" height="17" rx="{r_small}" '
+        f'fill="{sunken}" stroke="{border}" stroke-width="1"/>')
+
+    # ── radio 20×20 ──────────────────────────────────────────────────────────
+    files["radio.svg"] = svg(20, 20,
+        f'<rect x="1" y="1" width="18" height="18" rx="{r_radio}" fill="{accent}"/>\n'
+        f'<circle cx="10" cy="10" r="4" fill="{on_accent}"/>')
+    files["radio-off.svg"] = svg(20, 20,
+        f'<rect x="1.5" y="1.5" width="17" height="17" rx="{r_radio}" '
+        f'fill="{sunken}" stroke="{border}" stroke-width="1"/>')
+
+    # ── switch 46×26 ─────────────────────────────────────────────────────────
+    # The knob is deliberately not the accent: the same rule as the scale's, and for the same
+    # reason — a handle the colour of its track is not a handle.
+    files["toggle-on.svg"] = svg(46, 26,
+        f'<rect x="1" y="1" width="44" height="24" rx="{r_track}" fill="{accent}"/>\n'
+        f'<rect x="25" y="4" width="18" height="18" rx="{r_track}" fill="{on_accent}"/>')
+    files["toggle-off.svg"] = svg(46, 26,
+        f'<rect x="1.5" y="1.5" width="43" height="23" rx="{r_track}" '
+        f'fill="{sunken}" stroke="{border}" stroke-width="1"/>\n'
+        f'<rect x="4" y="4" width="18" height="18" rx="{r_track}" fill="{dim}"/>')
+
+    # ── calendar arrows 16×16 ────────────────────────────────────────────────
+    for name, d in (("left", "M10.6 3.4 L11.9 4.7 L7.6 9 L11.9 13.3 L10.6 14.6 L5 9 Z"),
+                    ("right", "M5.4 3.4 L4.1 4.7 L8.4 9 L4.1 13.3 L5.4 14.6 L11 9 Z")):
+        files[f"calendar-arrow-{name}.svg"] = svg(16, 18, f'<path d="{d}" fill="{fg}"/>')
+        files[f"calendar-arrow-{name}-hover.svg"] = svg(16, 18, f'<path d="{d}" fill="{accent}"/>')
+
+    # ── expo: add a workspace, close a window, the trash ─────────────────────
+    plus = 'M17 9 H21 V17 H29 V21 H21 V29 H17 V21 H9 V17 H17 Z'
+    files["add-workspace.svg"] = svg(38, 38,
+        f'<rect x="1" y="1" width="36" height="36" rx="{r_small}" fill="{sunken}" '
+        f'stroke="{border}" stroke-width="1"/>\n<path d="{plus}" fill="{fg}"/>')
+    files["add-workspace-hover.svg"] = svg(38, 38,
+        f'<rect x="1" y="1" width="36" height="36" rx="{r_small}" fill="{accent}"/>\n'
+        f'<path d="{plus}" fill="{on_accent}"/>')
+
+    cross = ('M8.2 6.4 L15.6 13.8 L13.8 15.6 L6.4 8.2 Z '
+             'M15.6 8.2 L8.2 15.6 L6.4 13.8 L13.8 6.4 Z')
+    files["close.svg"] = svg(22, 22,
+        f'<circle cx="11" cy="11" r="10" fill="{c["destructive_bg_color"]}"/>\n'
+        f'<path d="{cross}" fill="{c["destructive_fg_color"]}"/>')
+
+    files["trash-icon.svg"] = svg(48, 48,
+        f'<path d="M18 6 H30 V10 H40 V14 H8 V10 H18 Z" fill="{fg}"/>\n'
+        f'<path d="M11 18 H37 L34 43 H14 Z M18 22 V39 H21 V22 Z M26 22 V39 H29 V22 Z" '
+        f'fill="{fg}" fill-rule="evenodd"/>')
+
+    for name, text in files.items():
+        (out / name).write_text(text, encoding="utf-8")
+
+    print(f"  cinnamon: {len(files)} images")
+
+
+main()

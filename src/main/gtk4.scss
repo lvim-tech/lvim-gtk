@@ -1,0 +1,16 @@
+// lvim-gtk — GTK4 / libadwaita entry point.
+//
+// Colours first, then shape. The order is not cosmetic: libadwaita's own stylesheet maps each of
+// these legacy names into the custom property it actually reads (`--accent-bg-color:
+// @accent_bg_color`), so the names must be defined before anything resolves them.
+//
+// The split between the two files is real rather than tidy. `libadwaita/colors` is what makes
+// GTK4 wear the palette — on its own it is already enough for an application to look themed.
+// `gtk4/base` is what makes GTK4 wear the same GEOMETRY as the GTK3 half, which is what stops
+// Nautilus and Nemo from reading as two different themes that happen to share a colour scheme.
+
+@use '../sass/libadwaita/colors' as adw;
+@use '../sass/gtk4/base' as gtk4;
+
+@include adw.emit;
+@include gtk4.emit;

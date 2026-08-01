@@ -1,0 +1,7 @@
+<!-- lvim-gtk: the dash of an INDETERMINATE checkbox — a partially-selected group.
+
+     It exists because without it "indeterminate" and "checked" render identically: both fill with
+     the accent, and only the glyph tells them apart. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <rect x="3.5" y="7" width="9" height="2" rx="1"/>
+</svg>

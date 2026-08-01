@@ -1,0 +1,12 @@
+<!-- lvim-gtk: the checkmark inside a checked checkbox.
+
+     Drawn as a CLOSED FILLED polygon, not a stroked path, and that is not a stylistic choice. GTK
+     turns this file into a symbolic icon by wrapping it in a stylesheet that sets `fill` on every
+     path/rect/circle — `stroke` is never touched. A stroked tick would therefore arrive as a filled
+     blob of whatever shape the stroke outline happened to enclose.
+
+     Six points: the two arms of the tick, each edge parallel to its opposite so the stroke reads at
+     an even ~2px across at 16px, which is the weight the rest of this theme's chrome uses. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <path d="M 4.3 6.8 L 2.9 8.2 L 6.2 11.5 L 13.1 4.6 L 11.7 3.2 L 6.2 8.7 Z"/>
+</svg>

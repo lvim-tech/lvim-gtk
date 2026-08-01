@@ -1,0 +1,467 @@
+// lvim-gtk.cinnamon.base: the Cinnamon desktop.
+//
+// Cinnamon is St, like GNOME Shell, so the same two facts govern this file: no custom properties,
+// and a user theme REPLACES the stylesheet rather than layering over it. A selector left out is
+// unstyled, not inherited.
+//
+// It is NOT a rename of the Shell's stylesheet, though. Cinnamon's widget names are its own — its
+// panel is `#panel` with `.panel-top` / `.panel-bottom` variants and corner pieces the Shell has no
+// equivalent of, its menus carry half a dozen `.popup-*-menu-item` kinds, and its overview is Expo
+// rather than the Shell's Activities. The inventory below was taken from Cinnamon's own
+// data/theme/cinnamon-sass/widgets/, one heading per file, so a gap is a missing heading.
+//
+// One deliberate departure: Cinnamon paints its hot-corner ripple from a PNG, `corner-ripple.png`.
+// Since we write the rule as well as the asset, the ripple is drawn with a colour instead — an
+// image generator producing one raster per palette to say "a translucent accent circle" would be
+// work spent hiding a colour behind a file.
+
+@use '../semantic' as s;
+@use '../config' as c;
+
+$cinn-panel:    s.alpha(s.sink(s.$surface, 4%), 0.92) !default;
+$cinn-overlay:  s.alpha(s.sink(s.$surface, 6%), 0.95) !default;
+$cinn-hover:    s.$state-hover !default;
+$cinn-border:   s.$border !default;
+
+@mixin emit {
+    /* ── base ──────────────────────────────────────────────────────────────── */
+    stage { font-size: 11pt; color: s.$on-surface; }
+
+    .separator { height: 1px; background-color: $cinn-border; margin: c.$space-2 0; }
+    .cinnamon-link { color: s.lift(s.$accent, 14%); }
+    .lightbox { background-color: #000000; }
+    .flashspot { background-color: #ffffff; }
+    .placeholder { background-color: s.alpha(s.$accent, 0.3); }
+    .spacer-box { spacing: c.$space-2; }
+    .pie-timer { color: s.$accent; }
+    .magnifier-zoom { border: 2px solid s.$accent; }
+
+    /* Cinnamon's hot corner. Colour rather than corner-ripple.png — see the note above. */
+    .ripple-box {
+        background-color: s.alpha(s.$accent, 0.35);
+        border-radius: 0 0 c.$radius-large 0;
+    }
+    .ripple-pointer-location {
+        background-color: s.alpha(s.$accent, 0.3);
+        border-radius: c.$radius-track;
+    }
+
+    /* ── panel ─────────────────────────────────────────────────────────────── */
+    #panel,
+    .panel {
+        background-color: $cinn-panel;
+        border: none;
+        font-weight: bold;
+    }
+    .panel-top { border-bottom: c.$border-width solid $cinn-border; }
+    .panel-bottom { border-top: c.$border-width solid $cinn-border; }
+
+    .panel-corner {
+        -panel-corner-radius: 0;
+        -panel-corner-background-color: $cinn-panel;
+        -panel-corner-border-width: 0;
+        -panel-corner-border-color: transparent;
+    }
+
+    .panel-launchers { spacing: c.$space-2; padding: 0 c.$space-2; }
+    .systray { spacing: c.$space-2; }
+    .system-status-icon { icon-size: 16px; padding: 0 c.$space-1; }
+
+    .applet,
+    .applet-box {
+        color: s.$on-surface;
+        border-radius: c.$radius;
+        padding: 0 c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .applet-box:hover { background-color: $cinn-hover; }
+    .applet-box:checked,
+    .applet-box:active {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .applet-label { font-weight: bold; color: s.$on-surface; }
+    .applet-icon { icon-size: 16px; color: s.$on-surface; }
+
+    .applet-cornerbar,
+    .applet-cornerbar-box {
+        background-color: transparent;
+        width: 6px;
+    }
+    .applet-cornerbar:hover { background-color: $cinn-hover; }
+
+    /* ── window list ───────────────────────────────────────────────────────── */
+    .window-list,
+    .grouped-window-list { spacing: c.$space-1; }
+
+    .window-list .window-list-item-box,
+    .grouped-window-list .grouped-window-list-item-box {
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: 0 c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .window-list .window-list-item-box:hover,
+    .grouped-window-list .grouped-window-list-item-box:hover { background-color: $cinn-hover; }
+    .window-list .window-list-item-box:focus,
+    .grouped-window-list .grouped-window-list-item-box:active {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+
+    .workspace-button {
+        border-radius: c.$radius;
+        color: s.$on-surface-dim;
+        padding: 0 c.$space-3;
+    }
+    .workspace-button:outlined,
+    .workspace-button:checked {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .workspace-graph { border: c.$border-width solid $cinn-border; }
+
+    /* ── menus ─────────────────────────────────────────────────────────────── */
+    .menu,
+    .popup-menu-content,
+    .popup-dialog,
+    .candidate-popup-content {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-2;
+    }
+
+    .popup-menu-item,
+    .popup-alternating-menu-item,
+    .popup-device-menu-item,
+    .popup-inhibitor-menu-item,
+    .popup-printer-menu-item,
+    .popup-subtitle-menu-item,
+    .popup-submenu-menu-item,
+    .popup-combobox-item {
+        border-radius: c.$radius-active;
+        padding: c.$space-2 c.$space-4;
+        spacing: c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .popup-menu-item:hover,
+    .popup-menu-item:active,
+    .popup-menu-item.selected,
+    .popup-submenu-menu-item:open,
+    .popup-combobox-item:hover {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .popup-menu-item:insensitive { color: s.$on-surface-mute; }
+
+    .popup-sub-menu { background-color: s.alpha(s.$shadow, 0.2); border: none; }
+    .popup-combo-menu {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        padding: c.$space-2;
+    }
+    .popup-separator-menu-item {
+        height: 1px;
+        background-color: transparent;
+        border-color: $cinn-border;
+        margin: c.$space-2 0;
+    }
+    .popup-menu-arrow { icon-size: 16px; }
+    .popup-menu-icon { icon-size: 16px; }
+    .popup-slider-menu-item { padding: c.$space-3 c.$space-4; }
+
+    .device-box { spacing: c.$space-3; }
+    .nm-menu-item-icons { spacing: c.$space-2; }
+    .wireless-active { color: s.$accent; }
+    .sound-player { padding: c.$space-3; }
+
+    /* ── start menu and search entries ─────────────────────────────────────── */
+    .appmenu { padding: c.$space-3; }
+
+    #menu-search-entry,
+    #appmenu-search-entry {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-4;
+        width: 250px;
+    }
+    #menu-search-entry:focus,
+    #appmenu-search-entry:focus { border-color: s.$accent; }
+    .menu-search-entry-icon { icon-size: 16px; color: s.$on-surface-dim; }
+
+    /* ── calendar ──────────────────────────────────────────────────────────── */
+    .calendar { padding: c.$space-3; spacing-rows: c.$space-1; spacing-columns: c.$space-1; }
+    .calendar-month-label { color: s.$on-surface; font-weight: bold; padding: c.$space-2 0; }
+    .calendar-change-month-back,
+    .calendar-change-month-forward { width: 16px; height: 18px; }
+    .calendar-day-base {
+        border-radius: c.$radius-track;
+        padding: c.$space-2;
+        width: 30px;
+        height: 30px;
+        transition-duration: c.$duration;
+    }
+    .calendar-day-base:hover { background-color: $cinn-hover; }
+    .calendar-day-base:active,
+    .calendar-day-base:selected { background-color: s.$accent; color: s.$on-accent; }
+    .calendar-day-heading { color: s.$on-surface-dim; font-size: 0.85em; }
+    .calendar-nonwork-day { color: s.$on-surface-dim; }
+    .calendar-other-month-day { color: s.$on-surface-mute; }
+    .calendar-today { font-weight: bold; border: c.$border-width solid s.$accent; }
+    .calendar-week-number { color: s.$on-surface-mute; font-size: 0.8em; }
+
+    /* ── notifications ─────────────────────────────────────────────────────── */
+    #notification,
+    .notification {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-4;
+        spacing: c.$space-3;
+        width: 34em;
+    }
+    #notification .notification-button,
+    .notification .notification-button {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-5;
+    }
+    .notification-applet-padding { padding: c.$space-3; }
+
+    /* ── dialogs ───────────────────────────────────────────────────────────── */
+    .dialog,
+    .modal-dialog,
+    .polkit-dialog,
+    .prompt-dialog,
+    .run-dialog,
+    .end-session-dialog,
+    .autorun-dialog,
+    .processes-dialog {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-6;
+        spacing: c.$space-4;
+    }
+    .message-dialog-content { spacing: c.$space-4; }
+    .dialog-list { spacing: c.$space-3; }
+    .dialog-list .dialog-list-item {
+        border-radius: c.$radius;
+        padding: c.$space-3;
+    }
+    .dialog-list .dialog-list-item:hover { background-color: $cinn-hover; }
+
+    .run-dialog .run-dialog-entry,
+    .prompt-dialog .prompt-dialog-password-entry {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3;
+    }
+    .prompt-dialog-error-label { color: s.$error; }
+    .prompt-dialog-info-label { color: s.$on-surface-dim; }
+    .caps-lock-warning-label { color: s.$warning; }
+
+    .user-widget { spacing: c.$space-4; }
+    .user-widget-label { color: s.$on-surface; font-weight: bold; }
+    .user-icon { border-radius: c.$radius-track; }
+
+    /* ── alt-tab ───────────────────────────────────────────────────────────── */
+    #altTabPopup { spacing: c.$space-4; }
+    .switcher-list {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-4;
+    }
+    .switcher-list .item-box {
+        border-radius: c.$radius;
+        padding: c.$space-3;
+    }
+    .switcher-list .item-box:selected,
+    .switcher-list .item-box:outlined {
+        background-color: s.$accent;
+        color: s.$on-accent;
+    }
+    .switcher-arrow { border-color: transparent; color: s.$on-surface-dim; }
+    .switcher-arrow:highlighted { color: s.$on-accent; }
+    .switcher-preview-backdrop { background-color: s.alpha(#000, 0.5); }
+    .thumbnail-scroll-gradient { background-color: transparent; }
+
+    /* ── expo and overview ─────────────────────────────────────────────────── */
+    .expo,
+    #overview { background-color: s.alpha(s.$surface, 0.9); spacing: c.$space-5; }
+    .overview-empty-placeholder { color: s.$on-surface-mute; }
+
+    .workspace { border-radius: c.$radius; }
+    .workspace-switch-osd {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-5;
+    }
+
+    .window { border-radius: c.$radius; }
+    .window-caption {
+        background-color: $cinn-overlay;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-2 c.$space-4;
+    }
+    .tile-preview {
+        background-color: s.alpha(s.$accent, c.$selection-cell-alpha);
+        border: c.$border-width solid s.$accent;
+    }
+    .resize-popup {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-4;
+    }
+
+    /* ── OSDs ──────────────────────────────────────────────────────────────── */
+    .info-osd,
+    .media-keys-osd {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        padding: c.$space-5;
+        spacing: c.$space-4;
+    }
+    .media-keys-osd .level {
+        height: 8px;
+        -barlevel-height: 8px;
+        -barlevel-background-color: s.$surface-sunken;
+        -barlevel-active-background-color: s.$accent;
+    }
+
+    #Tooltip {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-2 c.$space-4;
+    }
+
+    /* ── desklets ──────────────────────────────────────────────────────────── */
+    .desklet {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+    }
+    .desklet-with-borders { border: c.$border-width solid $cinn-border; }
+    .photoframe-box {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+    }
+    .clock-desklet-label { color: s.$on-surface; }
+
+    /* ── screensaver and shield ────────────────────────────────────────────── */
+    .screen-shield { background-color: s.$surface; }
+    .screensaver-clock { color: s.$on-surface; font-size: 64pt; font-weight: bold; }
+    .screensaver-date { color: s.$on-surface-dim; font-size: 16pt; }
+
+    /* ── virtual keyboard ──────────────────────────────────────────────────── */
+    #virtual-keyboard {
+        background-color: $cinn-panel;
+        border-top: c.$border-width solid $cinn-border;
+    }
+    .vkeyboard-key {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+    }
+    .vkeyboard-key:hover { background-color: s.lift(s.$surface-sunken, 6%); }
+    .vkeyboard-key:checked,
+    .vkeyboard-key:active { background-color: s.$accent; color: s.$on-accent; }
+    .vkeyboard-key-container { spacing: c.$space-1; }
+    .vkeyboard-subkeys {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+    }
+    .word-suggestions { color: s.$on-surface-dim; spacing: c.$space-4; }
+
+    /* ── input method candidates ───────────────────────────────────────────── */
+    .candidate-popup-boxpointer { -arrow-border-radius: c.$radius-large; }
+    .candidate-box {
+        border-radius: c.$radius;
+        padding: c.$space-2 c.$space-3;
+        transition-duration: c.$duration;
+    }
+    .candidate-box:selected { background-color: s.$accent; color: s.$on-accent; }
+    .candidate-index { color: s.$on-surface-dim; }
+    .candidate-page-button,
+    .candidate-page-button-previous,
+    .candidate-page-button-next { border-radius: c.$radius; padding: c.$space-2; }
+    .candidate-page-button:hover { background-color: $cinn-hover; }
+    .candidate-page-button-box { spacing: c.$space-2; }
+    .candidate-page-button-icon { icon-size: 16px; }
+
+    /* ── shared controls ───────────────────────────────────────────────────── */
+    .button,
+    .icon-button {
+        background-color: s.$surface-sunken;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius;
+        color: s.$on-surface;
+        padding: c.$space-3 c.$space-5;
+        transition-duration: c.$duration;
+    }
+    .button:hover,
+    .icon-button:hover { background-color: s.lift(s.$surface-sunken, 6%); }
+    .button:active,
+    .icon-button:active { background-color: s.$accent; color: s.$on-accent; }
+    .button:insensitive { color: s.$on-surface-mute; }
+
+    /* The tick, the dot and the knob are images Cinnamon names itself — generated per palette by
+       scripts/cinnamon-assets, because St cannot draw a checkmark without one. */
+    .check-box StBoxLayout,
+    .radiobutton StBoxLayout { spacing: 0.8em; }
+    .check-box StBin,
+    .radiobutton StBin { width: 20px; height: 20px; }
+    .toggle-switch { width: 46px; height: 26px; background-size: contain; }
+
+    .slider {
+        color: s.$accent;
+        -slider-height: 4px;
+        -slider-background-color: s.$surface-sunken;
+        -slider-border-color: transparent;
+        -slider-active-background-color: s.$accent;
+        -slider-active-border-color: transparent;
+        -slider-border-width: 0;
+        -slider-handle-radius: 8px;
+    }
+
+    /* ── looking glass ─────────────────────────────────────────────────────── */
+    #LookingGlassDialog {
+        background-color: $cinn-overlay;
+        border: c.$border-width solid $cinn-border;
+        border-radius: c.$radius-large;
+        color: s.$on-surface;
+        spacing: c.$space-3;
+    }
+    #LookingGlassDialog .notebook-tab {
+        color: s.$on-surface-dim;
+        padding: c.$space-2 c.$space-4;
+        border-radius: c.$radius;
+    }
+    #LookingGlassDialog .notebook-tab:selected { background-color: s.$accent; color: s.$on-accent; }
+}

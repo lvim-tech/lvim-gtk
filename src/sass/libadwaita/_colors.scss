@@ -1,0 +1,187 @@
+// lvim-gtk.libadwaita.colors: the 108 named colours libadwaita reads.
+//
+// This one file is the whole of GTK4 theming for modern applications, and that is not a shortcut —
+// it is how libadwaita is designed. It deliberately does NOT load themes from ~/.local/share/themes;
+// an application built on it looks up these names and nothing else. Redefining them is the supported
+// path, and it is what every theme that claims to restyle GTK4 applications actually does.
+//
+// The list is not from memory. It was extracted from the installed library itself:
+//
+//     gresource extract /usr/lib64/libadwaita-1.so.0 /org/gnome/Adwaita/styles/gtk.css
+//
+// and kept in doc/libadwaita-colors.txt. Anything missing here is a name libadwaita will resolve
+// from its own defaults — which is how a theme ends up with one stray Adwaita blue in a corner
+// nobody looks at.
+
+@use '../semantic' as s;
+@use '../palette' as p;
+@use 'sass:color';
+
+// shades() derives the five steps GNOME's standard palette expects from a single accent.
+//
+// The step is deliberately uneven — 1 and 2 are pale tints used for text on dark backgrounds, 3 is
+// the colour itself, 4 and 5 are pressed and border states. Spacing them evenly produces five
+// colours of which only the middle is usable, which is why GNOME's own palette is not evenly spaced
+// either.
+@function shade-1($c) { @return color.adjust($c, $lightness: 22%, $saturation: -8%); }
+@function shade-2($c) { @return color.adjust($c, $lightness: 12%, $saturation: -4%); }
+@function shade-3($c) { @return $c; }
+@function shade-4($c) { @return color.adjust($c, $lightness: -8%); }
+@function shade-5($c) { @return color.adjust($c, $lightness: -16%); }
+
+@mixin emit {
+    /* ── surfaces ──────────────────────────────────────────────────────────── */
+    @define-color window_bg_color #{s.hex(s.$surface)};
+    @define-color window_fg_color #{s.hex(s.$on-surface)};
+    @define-color view_bg_color #{s.hex(s.$surface-view)};
+    @define-color view_fg_color #{s.hex(s.$on-surface)};
+
+    @define-color headerbar_bg_color #{s.hex(s.$surface-header)};
+    @define-color headerbar_fg_color #{s.hex(s.$on-surface)};
+    @define-color headerbar_border_color #{s.hex(s.$border)};
+    @define-color headerbar_backdrop_color #{s.hex(s.$surface-backdrop)};
+    @define-color headerbar_shade_color #{s.hex(s.$shadow)};
+    @define-color headerbar_darker_shade_color #{s.hex(s.$shadow-strong)};
+
+    @define-color sidebar_bg_color #{s.hex(s.$surface-sidebar)};
+    @define-color sidebar_fg_color #{s.hex(s.$on-surface)};
+    @define-color sidebar_backdrop_color #{s.hex(s.$surface-backdrop)};
+    @define-color sidebar_border_color #{s.hex(s.$border)};
+    @define-color sidebar_shade_color #{s.hex(s.$shadow)};
+
+    @define-color secondary_sidebar_bg_color #{s.hex(s.sink(s.$surface-sidebar, 2%))};
+    @define-color secondary_sidebar_fg_color #{s.hex(s.$on-surface)};
+    @define-color secondary_sidebar_backdrop_color #{s.hex(s.$surface-backdrop)};
+    @define-color secondary_sidebar_border_color #{s.hex(s.$border)};
+    @define-color secondary_sidebar_shade_color #{s.hex(s.$shadow)};
+
+    @define-color card_bg_color #{s.hex(s.$surface-raised)};
+    @define-color card_fg_color #{s.hex(s.$on-surface)};
+    @define-color card_shade_color #{s.hex(s.$shadow)};
+
+    @define-color dialog_bg_color #{s.hex(s.$surface-raised)};
+    @define-color dialog_fg_color #{s.hex(s.$on-surface)};
+
+    @define-color popover_bg_color #{s.hex(s.$surface-raised)};
+    @define-color popover_fg_color #{s.hex(s.$on-surface)};
+    @define-color popover_shade_color #{s.hex(s.$shadow)};
+
+    /* A thumbnail sits over arbitrary artwork, so it takes the window background rather than a
+       raised one — a raised surface there reads as a card floating on the picture. */
+    @define-color thumbnail_bg_color #{s.hex(s.$surface)};
+    @define-color thumbnail_fg_color #{s.hex(s.$on-surface)};
+
+    @define-color shade_color #{s.hex(s.$shadow)};
+    @define-color scrollbar_outline_color #{s.hex(s.$border)};
+    @define-color borders #{s.hex(s.$border)};
+    @define-color unfocused_borders #{s.hex(s.sink(s.$border, 3%))};
+
+    /* ── accent and states ─────────────────────────────────────────────────── */
+    @define-color accent_bg_color #{s.hex(s.$accent)};
+    @define-color accent_fg_color #{s.hex(s.$on-accent)};
+    /* accent_color is the STANDALONE form — accented text on a normal background, not a filled
+       button. On a dark palette the raw accent is often too dim to read as text, so it is lifted;
+       using the same value for both is the usual cause of unreadable links. */
+    @define-color accent_color #{s.hex(s.lift(s.$accent, 14%))};
+
+    @define-color destructive_bg_color #{s.hex(s.$destructive)};
+    @define-color destructive_fg_color #{s.hex(s.$on-destructive)};
+    @define-color destructive_color #{s.hex(s.lift(s.$destructive, 12%))};
+
+    @define-color success_bg_color #{s.hex(s.$success)};
+    @define-color success_fg_color #{s.hex(s.$on-success)};
+    @define-color success_color #{s.hex(s.lift(s.$success, 14%))};
+
+    @define-color warning_bg_color #{s.hex(s.$warning)};
+    @define-color warning_fg_color #{s.hex(s.$on-warning)};
+    @define-color warning_color #{s.hex(s.lift(s.$warning, 10%))};
+
+    @define-color error_bg_color #{s.hex(s.$error)};
+    @define-color error_fg_color #{s.hex(s.$on-error)};
+    @define-color error_color #{s.hex(s.lift(s.$error, 12%))};
+
+    /* ── the GNOME standard palette ────────────────────────────────────────── */
+    /* Applications reach for these by name for their own artwork — a calendar's event colours, a
+       text editor's syntax. They are mapped onto our accents so an application picking "green_3"
+       lands inside the theme instead of beside it. */
+    @define-color blue_1 #{s.hex(shade-1(p.$blue))};
+    @define-color blue_2 #{s.hex(shade-2(p.$blue))};
+    @define-color blue_3 #{s.hex(shade-3(p.$blue))};
+    @define-color blue_4 #{s.hex(shade-4(p.$blue))};
+    @define-color blue_5 #{s.hex(shade-5(p.$blue))};
+
+    @define-color green_1 #{s.hex(shade-1(p.$green))};
+    @define-color green_2 #{s.hex(shade-2(p.$green))};
+    @define-color green_3 #{s.hex(shade-3(p.$green))};
+    @define-color green_4 #{s.hex(shade-4(p.$green))};
+    @define-color green_5 #{s.hex(shade-5(p.$green))};
+
+    @define-color yellow_1 #{s.hex(shade-1(p.$yellow))};
+    @define-color yellow_2 #{s.hex(shade-2(p.$yellow))};
+    @define-color yellow_3 #{s.hex(shade-3(p.$yellow))};
+    @define-color yellow_4 #{s.hex(shade-4(p.$yellow))};
+    @define-color yellow_5 #{s.hex(shade-5(p.$yellow))};
+
+    @define-color orange_1 #{s.hex(shade-1(p.$orange))};
+    @define-color orange_2 #{s.hex(shade-2(p.$orange))};
+    @define-color orange_3 #{s.hex(shade-3(p.$orange))};
+    @define-color orange_4 #{s.hex(shade-4(p.$orange))};
+    @define-color orange_5 #{s.hex(shade-5(p.$orange))};
+
+    @define-color red_1 #{s.hex(shade-1(p.$red))};
+    @define-color red_2 #{s.hex(shade-2(p.$red))};
+    @define-color red_3 #{s.hex(shade-3(p.$red))};
+    @define-color red_4 #{s.hex(shade-4(p.$red))};
+    @define-color red_5 #{s.hex(shade-5(p.$red))};
+
+    @define-color purple_1 #{s.hex(shade-1(p.$purple))};
+    @define-color purple_2 #{s.hex(shade-2(p.$purple))};
+    @define-color purple_3 #{s.hex(shade-3(p.$purple))};
+    @define-color purple_4 #{s.hex(shade-4(p.$purple))};
+    @define-color purple_5 #{s.hex(shade-5(p.$purple))};
+
+    /* GNOME has a brown family; our palettes do not. Magenta is the nearest in hue on every one of
+       the 48 — deriving brown from red instead would collide with the error colour. */
+    @define-color brown_1 #{s.hex(shade-1(p.$magenta))};
+    @define-color brown_2 #{s.hex(shade-2(p.$magenta))};
+    @define-color brown_3 #{s.hex(shade-3(p.$magenta))};
+    @define-color brown_4 #{s.hex(shade-4(p.$magenta))};
+    @define-color brown_5 #{s.hex(shade-5(p.$magenta))};
+
+    /* light_* and dark_* are the neutral ramp. They are taken from the palette's own background and
+       foreground steps rather than from pure white and black, so "light_1" belongs to this theme
+       instead of punching a hole in it. */
+    @define-color light_1 #{s.hex(s.lift(p.$fg-light, 20%))};
+    @define-color light_2 #{s.hex(s.lift(p.$fg-light, 12%))};
+    @define-color light_3 #{s.hex(p.$fg-light)};
+    @define-color light_4 #{s.hex(p.$fg)};
+    @define-color light_5 #{s.hex(p.$fg-dark)};
+
+    @define-color dark_1 #{s.hex(p.$bg-light)};
+    @define-color dark_2 #{s.hex(p.$bg-soft-light)};
+    @define-color dark_3 #{s.hex(p.$bg)};
+    @define-color dark_4 #{s.hex(p.$bg-soft-dark)};
+    @define-color dark_5 #{s.hex(p.$bg-dark)};
+
+    /* ── legacy GTK3 names ─────────────────────────────────────────────────── */
+    /* Still consulted by older widgets and by applications that predate libadwaita. Cheap to
+       provide, and leaving them out is how one dialog in one application stays Adwaita blue. */
+    @define-color theme_bg_color #{s.hex(s.$surface)};
+    @define-color theme_fg_color #{s.hex(s.$on-surface)};
+    @define-color theme_base_color #{s.hex(s.$surface-view)};
+    @define-color theme_text_color #{s.hex(s.$on-surface)};
+    @define-color theme_selected_bg_color #{s.hex(s.$selection-bg)};
+    @define-color theme_selected_fg_color #{s.hex(s.$selection-fg)};
+
+    @define-color insensitive_bg_color #{s.hex(s.$surface)};
+    @define-color insensitive_fg_color #{s.hex(s.$on-surface-mute)};
+    @define-color insensitive_base_color #{s.hex(s.$surface-view)};
+
+    @define-color theme_unfocused_bg_color #{s.hex(s.$surface-backdrop)};
+    @define-color theme_unfocused_fg_color #{s.hex(s.$on-surface-dim)};
+    @define-color theme_unfocused_base_color #{s.hex(s.$surface-view)};
+    @define-color theme_unfocused_text_color #{s.hex(s.$on-surface-dim)};
+    @define-color theme_unfocused_selected_bg_color #{s.hex(s.sink(s.$selection-bg, 6%))};
+    @define-color theme_unfocused_selected_fg_color #{s.hex(s.$selection-fg)};
+    @define-color unfocused_insensitive_color #{s.hex(s.$on-surface-mute)};
+}

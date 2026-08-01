@@ -1,0 +1,10 @@
+// lvim-gtk — GNOME Shell entry point.
+//
+// No colour declarations here, and there cannot be: St's CSS engine has no `@define-color` and no
+// custom properties, so every value in the output is a literal that Sass resolved. The palette
+// still reaches it the same way everything else does — through _semantic.scss — it just arrives
+// baked rather than referenced.
+
+@use '../sass/shell/base' as shell;
+
+@include shell.emit;

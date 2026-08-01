@@ -1,0 +1,16 @@
+// lvim-gtk — the drawing-tablet OSD.
+//
+// A separate file because the Shell looks for it by name beside gnome-shell.css. It styles the
+// diagram shown while a tablet's pad buttons are being configured, and it is tiny — but a user
+// theme replaces the stylesheet rather than layering over it, so leaving it out means the diagram
+// arrives unstyled rather than arriving as Adwaita's.
+
+@use '../sass/semantic' as s;
+
+.pad-osd-window {
+    background-color: s.$surface;
+    color: s.$on-surface;
+}
+
+.pad-osd-title-box { spacing: 12px; }
+.pad-osd-title-menu-box { spacing: 6px; }
