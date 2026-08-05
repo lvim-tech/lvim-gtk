@@ -260,6 +260,16 @@ $success:           ensure-contrast(p.$green, $surface, 3.5) !default;
 $warning:           ensure-contrast(p.$yellow, $surface, 3.5) !default;
 $error:             ensure-contrast(p.$red, $surface, 3.5) !default;
 $destructive:       ensure-contrast(p.$red, $surface, 3.5) !default;
+// on(), NOT the forced light side the accent takes — and this was tried, so the numbers are worth
+// keeping. Forcing a pale label here put `warning` at 1.98:1 (white on #d1b57c, a pale yellow),
+// `success` at 2.51 and `error` at 3.59, with 34 to 37 of the 48 themes below the threshold. The
+// accent can take a pale label because its derivation keeps it mid-tone; these four cannot, because
+// `yellow` and `green` in a light palette are genuinely pale and nothing here darkens them.
+//
+// So the arbitrary flip at the 0.18 boundary stays — #c74d4d taking a pale label and #c74e4e a dark
+// one. It is a real inconsistency and it is the lesser one: at that luminance black measures 4.60:1
+// and white 4.57:1, so both sides are readable and only the look differs. Removing it means putting
+// these fills through the accent's derivation as well, which changes what a warning looks like.
 $on-success:        on($success) !default;
 $on-warning:        on($warning) !default;
 $on-error:          on($error) !default;
