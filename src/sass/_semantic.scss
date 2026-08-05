@@ -126,6 +126,21 @@ $is-light: color.lightness(p.$bg) > 50% !default;
         $out: if($up, color.adjust($out, $lightness: $step), color.adjust($out, $lightness: -$step));
         $i: $i + 1;
     }
+    // Running out of steps is not the same as having nowhere left to go. The walk moves 2% at a
+    // time and stops after $limit of them, and it used to return whatever it had reached — which
+    // is how #0e0e0e came to sit on everforest_light's #767a3c accent at 4.25:1 while plain black
+    // on the same fill measures 4.62:1. The target WAS reachable; the walk simply ran out one
+    // shade short, and nothing said so.
+    //
+    // So when the loop gives up, try the end of the road it was travelling. Taken only if it is
+    // actually better, which keeps the pathological case the $limit exists for — a mid-grey on a
+    // mid-grey, where neither end clears the target — from swapping a near-miss for a worse one.
+    @if contrast($out, $bg) < $target {
+        $end: if($up, #ffffff, #000000);
+        @if contrast($end, $bg) > contrast($out, $bg) {
+            $out: $end;
+        }
+    }
     @return $out;
 }
 
