@@ -4,15 +4,15 @@
 // which measures each one against the background and lifts it until it is legible — editor
 // palettes are deliberately low-contrast and cannot be used on a desktop as they are.
 //
-// style: lvim_soft
+// style: base_dark
 
-$style:         'lvim_soft';
+$style:         'base_dark';
 
-$bg:             #262d31;
-$bg-dark:        #22292d;
-$bg-light:       #2a3135;
-$bg-soft-dark:   #242b2f;
-$bg-soft-light:  #282f33;
+$bg:             #20272b;
+$bg-dark:        #1c2327;
+$bg-light:       #242b2f;
+$bg-soft-dark:   #1e2529;
+$bg-soft-light:  #22292d;
 $blue:           #447ca2;
 $blue-dark:      #3b6d8d;
 $comment:        #4d6263;
