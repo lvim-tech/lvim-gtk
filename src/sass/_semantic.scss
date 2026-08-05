@@ -160,11 +160,16 @@ $is-light: color.lightness(p.$bg) > 50% !default;
 // still contains pale fills — a yellow warning, a light accent — and text on those must be dark
 // even though everything else in the theme is light. 0.18 is the mid-point of the luminance scale,
 // so the question being asked is simply "is this fill light or dark", per fill.
-@function on($bg, $light: p.$fg-light, $dark: p.$bg-dark) {
+// The target is 7:1, not the 4.5 body-text floor. Asking for the floor is how every one of the 52
+// themes came to sit ON it — measured, 4.51 to 4.89 across the lot — because the walk stops at the
+// first shade that clears what was asked. The accent is now derived with room for 7, so asking for
+// less would leave that room unused. Where a fill genuinely cannot carry 7 — a mid-tone warning —
+// ensure-contrast runs out and returns the nearer end of the scale, which is still the best there is.
+@function on($bg, $light: p.$fg-light, $dark: p.$bg-dark, $target: 7) {
     @return if(
         luminance($bg) > 0.18,
-        ensure-contrast($dark, $bg, 4.5),
-        ensure-contrast($light, $bg, 4.5)
+        ensure-contrast($dark, $bg, $target),
+        ensure-contrast($light, $bg, $target)
     );
 }
 
@@ -232,10 +237,25 @@ $accent-source:     p.$green-dark !default;
 // So the accent is then walked AWAY from the side its text will come from — toward black on a dark
 // palette so near-white text has room, toward white on a light one — until that text clears the
 // body threshold. It costs a little saturation and buys a selection you can actually read.
+// MEASURED across all 52 built themes before this was changed: the text on the accent landed
+// between 4.51:1 and 4.89:1 everywhere, and the accent against its own window fell to 3.38:1 on
+// light palettes and 2.72:1 on dark ones. Every theme sat on the floor of both, which is what a
+// derivation does when its two requirements pull in opposite directions — and they did.
+//
+// The reference used to be `if($is-light, #000, #fff)`: on a light palette the accent was walked
+// away from BLACK, growing lighter so dark text would fit, while the 3.5 above was pushing it
+// darker so it would stand off the pale window. The two met in the middle, at a mid-tone that
+// carries text in neither direction. #767a3c on everforest_light is that meeting point: black
+// reads 4.62:1 on it and white 4.55:1, and both look wrong because both ARE wrong.
+//
+// Reversed, they pull together. A light palette gets a DARK accent carrying near-white text —
+// which is what every filled button on a light desktop has always looked like — and darker means
+// further from the pale window too. A dark palette gets the mirror. Nothing is traded away, so
+// the target rises to 7:1 rather than staying at the body-text floor.
 $accent: ensure-contrast(
              ensure-contrast($accent-source, $surface, 3.5),
-             if($is-light, #000, #fff),
-             4.5
+             if($is-light, #fff, #000),
+             7
          ) !default;
 $accent-hover:      lift($accent, 6%) !default;
 $accent-active:     sink($accent, 6%) !default;
