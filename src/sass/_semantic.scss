@@ -118,9 +118,13 @@ $is-light: color.lightness(p.$bg) > 50% !default;
 // used for text on an accent — where the "background" is the accent, not the window. Stepping 2% at
 // a time keeps the result close to the original; the cap exists so a pathological pair (a mid-grey
 // on a mid-grey) terminates instead of looping to white.
-@function ensure-contrast($fg, $bg, $target: 4.5, $step: 2%, $limit: 40) {
+// $up overrides which way to walk. Left null it is decided from the background, which is right for
+// text on a surface; a caller that has already chosen the side — $on-accent has — passes it in.
+@function ensure-contrast($fg, $bg, $target: 4.5, $step: 2%, $limit: 40, $up: null) {
     $out: $fg;
-    $up: luminance($bg) < 0.18;
+    @if $up == null {
+        $up: luminance($bg) < 0.18;
+    }
     $i: 0;
     @while contrast($out, $bg) < $target and $i < $limit {
         $out: if($up, color.adjust($out, $lightness: $step), color.adjust($out, $lightness: -$step));
@@ -239,7 +243,18 @@ $accent: ensure-contrast(
          ) !default;
 $accent-hover:      lift($accent, 6%) !default;
 $accent-active:     sink($accent, 6%) !default;
-$on-accent:         on($accent) !default;
+// ALWAYS the light side, not whichever side on() would pick.
+//
+// The accent is a mid-tone in every palette, because the derivation above puts it there on purpose,
+// and on() decides by a 0.18 luminance threshold — so two accents that are the same colour to the
+// eye can land on opposite sides of it. They did: everforest_dark's accent is #727638 and takes
+// near-white text, everforest_light's is #767a3c and took black. The same olive, opposite labels,
+// and the light one is the one that looked wrong.
+//
+// White is also no worse by measurement. On #767a3c black reads 4.62:1 and white 4.55:1 — a
+// difference nobody can see — and a filled accent carrying a pale label is what a button has looked
+// like on every desktop for thirty years.
+$on-accent: ensure-contrast(p.$fg-light, $accent, 4.5, $up: true) !default;
 
 $success:           ensure-contrast(p.$green, $surface, 3.5) !default;
 $warning:           ensure-contrast(p.$yellow, $surface, 3.5) !default;
